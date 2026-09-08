@@ -1,4 +1,5 @@
 /* ---------- storage ---------- */
+/* -------- storage -------- */
 const BMS_KEY = "gestao-ativos:bms";
 const FORN_KEY = "gestao-ativos:fornecedores";
 
@@ -31,6 +32,15 @@ async function saveFornecedores(f) {
   } catch (e) {
     return false;
   }
+}
+
+// DECLARAÇÃO DO COMPONENTE QUE FALTAVA:
+function App() {
+  return (
+    <div className="min-h-screen bg-slate-900 text-white p-8 flex items-center justify-center">
+      <h1 className="text-3xl font-bold">Gestão de Ativos - Meta Fam</h1>
+    </div>
+  );
 }
 
 export default App;
