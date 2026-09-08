@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import {
   LayoutGrid,
   Boxes,
   Building2,
+  History,
   Plus,
   Search,
   X,
   Pencil,
   Trash2,
   Loader2,
+  AlertCircle,
   Sun,
   Moon,
   ShieldCheck,
@@ -29,6 +31,8 @@ import {
   doc,
   setDoc,
   deleteDoc,
+  addDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 
 const THEMES = {
@@ -71,7 +75,7 @@ const THEMES = {
       em_recurso: { label: "Em recurso", fg: "#E3BA6C", bg: "#2E2413" },
       banida: { label: "Banida", fg: "#E58868", bg: "#341F17" },
       estoque: { label: "Em estoque", fg: "#A9BACD", bg: "#1B2837" },
-      vendida: { label: "Vendida", fg: "#B6A4E6", bg: "#241D38" },
+      vendida: { label: "Vendida", fg: "#241D38" },
     },
   },
 };
@@ -81,7 +85,7 @@ const brl = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const emptyBM = () => ({
-  id: uid(),
+  id: "",
   nome: "",
   telefone: "",
   status: "estoque",
@@ -121,6 +125,19 @@ const inputStyleFor = (T) => ({
   color: T.ink,
 });
 
+function StatusBadge({ status, T }) {
+  const cfg = T.STATUS[status] || T.STATUS.estoque;
+  return (
+    <span
+      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
+      style={{ backgroundColor: cfg.bg, color: cfg.fg }}
+    >
+      {cfg.label}
+    </span>
+  );
+}
+
+/* Modal do Ativo (BM) */
 function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   const [f, setF] = useState(initial || emptyBM());
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -133,14 +150,14 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: T.overlay }}>
       <div className="w-full max-w-lg rounded-2xl p-6 shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto" style={{ background: T.surface, color: T.ink }}>
-        <div className="flex items-center justify-between">
-          <h3 className="pg-font-display text-lg font-semibold">{initial?.id ? "Editar BM" : "Nova BM / Perfil"}</h3>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:opacity-70"><X size={20} /></button>
+        <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: T.borderSoft }}>
+          <h3 className="pg-font-display text-lg font-semibold">{initial?.id ? "Editar Ativo / BM" : "Novo Ativo / BM"}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:opacity-70"><X size={20} /></button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Field label="Nome da BM / Ativo" T={T}>
-            <input required value={f.nome} onChange={set("nome")} placeholder="Ex: BM 01" className={inputCls} style={inputStyleFor(T)} />
+          <Field label="Nome da BM / Identificador" T={T}>
+            <input required value={f.nome} onChange={set("nome")} placeholder="Ex: BM 01 - Perfil Principal" className={inputCls} style={inputStyleFor(T)} />
           </Field>
 
           <div className="grid grid-cols-2 gap-3">
@@ -172,13 +189,22 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
             </Field>
           </div>
 
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Data da Compra" T={T}>
+              <input type="date" value={f.dataCompra} onChange={set("dataCompra")} className={inputCls} style={inputStyleFor(T)} />
+            </Field>
+            <Field label="Data Conexão/Ativação" T={T}>
+              <input type="date" value={f.dataConexao} onChange={set("dataConexao")} className={inputCls} style={inputStyleFor(T)} />
+            </Field>
+          </div>
+
           <Field label="Observações" T={T}>
-            <textarea rows={3} value={f.observacoes} onChange={set("observacoes")} className={inputCls} style={inputStyleFor(T)} />
+            <textarea rows={3} value={f.observacoes} onChange={set("observacoes")} placeholder="Anotações internas, IDs adicionais..." className={inputCls} style={inputStyleFor(T)} />
           </Field>
 
-          <div className="flex justify-end gap-3 mt-3">
+          <div className="flex justify-end gap-3 mt-3 border-t pt-4" style={{ borderColor: T.borderSoft }}>
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: T.borderSoft, color: T.inkSoft }}>Cancelar</button>
-            <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Salvar</button>
+            <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Salvar Ativo</button>
           </div>
         </form>
       </div>
@@ -186,14 +212,18 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   );
 }
 
+/* Componente Principal */
 export default function PainelGestaoAtivos() {
   const [themeMode, setThemeMode] = useState("light");
   const [bms, setBms] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
+  const [historico, setHistorico] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("dashboard");
+  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBm, setEditingBm] = useState(null);
+  
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
 
@@ -201,6 +231,19 @@ export default function PainelGestaoAtivos() {
   const [fornContato, setFornContato] = useState("");
 
   const T = THEMES[themeMode];
+
+  // Registo centralizado de ações para a aba Histórico
+  const registrarHistorico = async (acao, detalhes) => {
+    try {
+      await addDoc(collection(db, "historico"), {
+        acao,
+        detalhes,
+        timestamp: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.error("Erro ao registrar histórico:", e);
+    }
+  };
 
   useEffect(() => {
     const unsubBMs = onSnapshot(collection(db, "bms"), (snapshot) => {
@@ -214,22 +257,40 @@ export default function PainelGestaoAtivos() {
       setFornecedores(data);
     });
 
+    const unsubHist = onSnapshot(collection(db, "historico"), (snapshot) => {
+      const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+      // Ordenar por horário descendente
+      data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+      setHistorico(data);
+    });
+
     return () => {
       unsubBMs();
       unsubForn();
+      unsubHist();
     };
   }, []);
 
   const handleSaveBM = async (bmData) => {
+    const isEdit = Boolean(bmData.id);
     const bmId = bmData.id || uid();
-    await setDoc(doc(db, "bms", bmId), { ...bmData, id: bmId });
+    const payload = { ...bmData, id: bmId };
+
+    await setDoc(doc(db, "bms", bmId), payload);
+    
+    await registrarHistorico(
+      isEdit ? "Edição de Ativo" : "Criação de Ativo",
+      `BM/Perfil: "${bmData.nome}" (Status: ${bmData.status})`
+    );
+
     setIsModalOpen(false);
     setEditingBm(null);
   };
 
-  const handleDeleteBM = async (id) => {
-    if (confirm("Deseja remover este ativo?")) {
+  const handleDeleteBM = async (id, nome) => {
+    if (confirm(`Deseja remover permanentemente o ativo "${nome}"?`)) {
       await deleteDoc(doc(db, "bms", id));
+      await registrarHistorico("Exclusão de Ativo", `Ativo "${nome}" (ID: ${id}) foi removido.`);
     }
   };
 
@@ -238,26 +299,32 @@ export default function PainelGestaoAtivos() {
     if (!fornNome.trim()) return;
     const fId = uid();
     await setDoc(doc(db, "fornecedores", fId), { id: fId, nome: fornNome, contato: fornContato });
+    await registrarHistorico("Novo Fornecedor", `Fornecedor registrado: "${fornNome}"`);
     setFornNome("");
     setFornContato("");
   };
 
-  const handleDeleteFornecedor = async (id) => {
-    if (confirm("Deseja remover este fornecedor?")) {
+  const handleDeleteFornecedor = async (id, nome) => {
+    if (confirm(`Deseja remover o fornecedor "${nome}"?`)) {
       await deleteDoc(doc(db, "fornecedores", id));
+      await registrarHistorico("Exclusão de Fornecedor", `Fornecedor "${nome}" foi deletado.`);
     }
   };
 
   const stats = useMemo(() => {
-    let gastoTotal = 0, ativas = 0;
+    let gastoTotal = 0, ativas = 0, estoque = 0, banidas = 0;
     bms.forEach((b) => {
       gastoTotal += Number(b.valor) || 0;
       if (b.status === "ativa") ativas++;
+      if (b.status === "estoque") estoque++;
+      if (b.status === "banida") banidas++;
     });
     return {
       totalBMs: bms.length,
       gastoTotal,
       ativas,
+      estoque,
+      banidas,
       taxaAtivas: bms.length > 0 ? ((ativas / bms.length) * 100).toFixed(1) : 0,
     };
   }, [bms]);
@@ -277,7 +344,8 @@ export default function PainelGestaoAtivos() {
   const filteredBMs = useMemo(() => {
     return bms.filter((b) => {
       const matchSearch = (b.nome || "").toLowerCase().includes(search.toLowerCase()) ||
-        (b.fornecedor || "").toLowerCase().includes(search.toLowerCase());
+        (b.fornecedor || "").toLowerCase().includes(search.toLowerCase()) ||
+        (b.telefone || "").toLowerCase().includes(search.toLowerCase());
       const matchStatus = statusFilter === "todos" || b.status === statusFilter;
       return matchSearch && matchStatus;
     });
@@ -285,8 +353,9 @@ export default function PainelGestaoAtivos() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center" style={{ background: T.bg, color: T.ink }}>
+      <div className="min-h-screen flex items-center justify-center gap-2" style={{ background: T.bg, color: T.ink }}>
         <Loader2 size={24} className="animate-spin" />
+        <span className="pg-font-body text-sm">Carregando painel...</span>
       </div>
     );
   }
@@ -303,10 +372,20 @@ export default function PainelGestaoAtivos() {
             <span className="pg-font-display font-bold text-lg">Gestão de Ativos</span>
           </div>
 
+          {/* Abas Restauradas */}
           <nav className="flex items-center gap-1">
-            <button onClick={() => setTab("dashboard")} className={`px-3 py-2 rounded-lg text-sm ${tab === "dashboard" ? "font-semibold" : ""}`} style={{ background: tab === "dashboard" ? T.primarySoft : "transparent", color: tab === "dashboard" ? T.primary : T.inkSoft }}><LayoutGrid size={18} /></button>
-            <button onClick={() => setTab("bms")} className={`px-3 py-2 rounded-lg text-sm ${tab === "bms" ? "font-semibold" : ""}`} style={{ background: tab === "bms" ? T.primarySoft : "transparent", color: tab === "bms" ? T.primary : T.inkSoft }}><Boxes size={18} /></button>
-            <button onClick={() => setTab("fornecedores")} className={`px-3 py-2 rounded-lg text-sm ${tab === "fornecedores" ? "font-semibold" : ""}`} style={{ background: tab === "fornecedores" ? T.primarySoft : "transparent", color: tab === "fornecedores" ? T.primary : T.inkSoft }}><Building2 size={18} /></button>
+            <button onClick={() => setTab("dashboard")} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === "dashboard" ? "font-semibold" : ""}`} style={{ background: tab === "dashboard" ? T.primarySoft : "transparent", color: tab === "dashboard" ? T.primary : T.inkSoft }}>
+              <LayoutGrid size={18} /> <span className="hidden md:inline">Dashboard</span>
+            </button>
+            <button onClick={() => setTab("bms")} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === "bms" ? "font-semibold" : ""}`} style={{ background: tab === "bms" ? T.primarySoft : "transparent", color: tab === "bms" ? T.primary : T.inkSoft }}>
+              <Boxes size={18} /> <span className="hidden md:inline">Ativos / BMs</span>
+            </button>
+            <button onClick={() => setTab("fornecedores")} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === "fornecedores" ? "font-semibold" : ""}`} style={{ background: tab === "fornecedores" ? T.primarySoft : "transparent", color: tab === "fornecedores" ? T.primary : T.inkSoft }}>
+              <Building2 size={18} /> <span className="hidden md:inline">Fornecedores</span>
+            </button>
+            <button onClick={() => setTab("historico")} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === "historico" ? "font-semibold" : ""}`} style={{ background: tab === "historico" ? T.primarySoft : "transparent", color: tab === "historico" ? T.primary : T.inkSoft }}>
+              <History size={18} /> <span className="hidden md:inline">Histórico</span>
+            </button>
           </nav>
 
           <div className="flex items-center gap-2">
@@ -321,47 +400,55 @@ export default function PainelGestaoAtivos() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* TAB: DASHBOARD */}
         {tab === "dashboard" && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs" style={{ color: T.inkSoft }}>Total BMs</span>
+                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Total BMs/Ativos</span>
                 <div className="text-2xl font-bold pg-font-display mt-1">{stats.totalBMs}</div>
               </div>
               <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs" style={{ color: T.inkSoft }}>Investimento</span>
+                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Investimento Acumulado</span>
                 <div className="text-2xl font-bold pg-font-display mt-1" style={{ color: T.gold }}>{brl(stats.gastoTotal)}</div>
               </div>
               <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs" style={{ color: T.inkSoft }}>BMs Ativas</span>
+                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>BMs Ativas</span>
                 <div className="text-2xl font-bold pg-font-display mt-1" style={{ color: T.STATUS.ativa.fg }}>{stats.ativas}</div>
               </div>
               <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs" style={{ color: T.inkSoft }}>Taxa Operação</span>
+                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Taxa de Operação</span>
                 <div className="text-2xl font-bold pg-font-display mt-1">{stats.taxaAtivas}%</div>
               </div>
             </div>
 
-            <div className="rounded-2xl p-6 border h-72" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
-                  <XAxis dataKey="name" stroke={T.inkSoft} fontSize={12} />
-                  <YAxis stroke={T.inkSoft} fontSize={12} allowDecimals={false} />
-                  <Tooltip contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
-                  <Bar dataKey="qtd" fill={T.primary} radius={[6, 6, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="rounded-2xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <span className="pg-font-display font-semibold text-sm">Distribuição por Status</span>
+              <div className="h-72">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
+                    <XAxis dataKey="name" stroke={T.inkSoft} fontSize={12} />
+                    <YAxis stroke={T.inkSoft} fontSize={12} allowDecimals={false} />
+                    <Tooltip contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
+                    <Bar dataKey="qtd" fill={T.primary} radius={[6, 6, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
         )}
 
+        {/* TAB: ATIVOS / BMS */}
         {tab === "bms" && (
           <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-2xl border flex gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar..." className="flex-1 px-3 py-2 rounded-lg text-sm outline-none" style={inputStyleFor(T)} />
+            <div className="p-4 rounded-2xl border flex flex-col sm:flex-row gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border }}>
+                <Search size={18} style={{ color: T.inkFaint }} />
+                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar ativo, fornecedor ou telefone..." className="w-full bg-transparent text-sm outline-none" style={{ color: T.ink }} />
+              </div>
               <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
-                <option value="todos">Todos</option>
+                <option value="todos">Todos os Status</option>
                 <option value="ativa">Ativa</option>
                 <option value="estoque">Estoque</option>
                 <option value="em_recurso">Recurso</option>
@@ -376,36 +463,49 @@ export default function PainelGestaoAtivos() {
                   <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
                     <th className="p-4">Ativo</th>
                     <th className="p-4">Status</th>
+                    <th className="p-4">Telefone</th>
                     <th className="p-4">Fornecedor</th>
                     <th className="p-4 text-right">Valor</th>
                     <th className="p-4 text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
-                  {filteredBMs.map((bm) => (
-                    <tr key={bm.id}>
-                      <td className="p-4 font-medium">{bm.nome}</td>
-                      <td className="p-4">{bm.status}</td>
-                      <td className="p-4" style={{ color: T.inkSoft }}>{bm.fornecedor || "—"}</td>
-                      <td className="p-4 text-right pg-tnum">{brl(bm.valor)}</td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => { setEditingBm(bm); setIsModalOpen(true); }} className="p-1 mr-2"><Pencil size={16} /></button>
-                        <button onClick={() => handleDeleteBM(bm.id)} className="p-1 text-red-500"><Trash2 size={16} /></button>
-                      </td>
+                  {filteredBMs.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="p-8 text-center" style={{ color: T.inkFaint }}>Nenhum ativo localizado.</td>
                     </tr>
-                  ))}
+                  ) : (
+                    filteredBMs.map((bm) => (
+                      <tr key={bm.id} className="transition-colors hover:bg-opacity-50" style={{ ":hover": { background: T.hoverRow } }}>
+                        <td className="p-4 font-medium">{bm.nome}</td>
+                        <td className="p-4"><StatusBadge status={bm.status} T={T} /></td>
+                        <td className="p-4" style={{ color: T.inkSoft }}>{bm.telefone || "—"}</td>
+                        <td className="p-4" style={{ color: T.inkSoft }}>{bm.fornecedor || "—"}</td>
+                        <td className="p-4 text-right pg-tnum font-medium">{brl(bm.valor)}</td>
+                        <td className="p-4 text-right">
+                          <button onClick={() => { setEditingBm(bm); setIsModalOpen(true); }} className="p-1.5 mr-1 rounded hover:bg-opacity-10 hover:bg-black" style={{ color: T.primary }}>
+                            <Pencil size={16} />
+                          </button>
+                          <button onClick={() => handleDeleteBM(bm.id, bm.nome)} className="p-1.5 rounded hover:bg-opacity-10 hover:bg-black text-red-500">
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>
           </div>
         )}
 
+        {/* TAB: FORNECEDORES */}
         {tab === "fornecedores" && (
           <div className="flex flex-col gap-6">
-            <form onSubmit={handleAddFornecedor} className="p-6 rounded-2xl border flex gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex-1"><Field label="Nome" T={T}><input value={fornNome} onChange={(e) => setFornNome(e.target.value)} className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <div className="flex-1"><Field label="Contato" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Adicionar</button>
+            <form onSubmit={handleAddFornecedor} className="p-6 rounded-2xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="flex-1 w-full"><Field label="Nome do Fornecedor" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
+              <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
+              <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Cadastrar</button>
             </form>
 
             <div className="rounded-2xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
@@ -423,7 +523,7 @@ export default function PainelGestaoAtivos() {
                       <td className="p-4 font-medium">{f.nome}</td>
                       <td className="p-4" style={{ color: T.inkSoft }}>{f.contato || "—"}</td>
                       <td className="p-4 text-right">
-                        <button onClick={() => handleDeleteFornecedor(f.id)} className="p-1 text-red-500"><Trash2 size={16} /></button>
+                        <button onClick={() => handleDeleteFornecedor(f.id, f.nome)} className="p-1 text-red-500 hover:opacity-70"><Trash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
@@ -432,8 +532,37 @@ export default function PainelGestaoAtivos() {
             </div>
           </div>
         )}
+
+        {/* TAB: HISTÓRICO (Restaurado) */}
+        {tab === "historico" && (
+          <div className="flex flex-col gap-4">
+            <div className="rounded-2xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="p-4 border-b font-medium text-sm" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
+                Atividades e Alterações Registradas
+              </div>
+              <div className="divide-y" style={{ borderColor: T.borderSoft }}>
+                {historico.length === 0 ? (
+                  <div className="p-8 text-center text-sm" style={{ color: T.inkFaint }}>Nenhum evento gravado até o momento.</div>
+                ) : (
+                  historico.map((h) => (
+                    <div key={h.id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm">
+                      <div>
+                        <span className="font-semibold mr-2" style={{ color: T.primary }}>[{h.acao}]</span>
+                        <span style={{ color: T.ink }}>{h.detalhes}</span>
+                      </div>
+                      <span className="text-xs pg-tnum" style={{ color: T.inkFaint }}>
+                        {h.timestamp ? new Date(h.timestamp).toLocaleString("pt-BR") : "—"}
+                      </span>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
+      {/* Modal de Criação / Edição */}
       {isModalOpen && (
         <BMModal
           initial={editingBm}
