@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   LayoutGrid,
   Boxes,
@@ -10,7 +10,6 @@ import {
   Pencil,
   Trash2,
   Loader2,
-  AlertCircle,
   Sun,
   Moon,
   ShieldCheck,
@@ -32,7 +31,6 @@ import {
   setDoc,
   deleteDoc,
   addDoc,
-  serverTimestamp,
 } from "firebase/firestore";
 
 const THEMES = {
@@ -75,7 +73,7 @@ const THEMES = {
       em_recurso: { label: "Em recurso", fg: "#E3BA6C", bg: "#2E2413" },
       banida: { label: "Banida", fg: "#E58868", bg: "#341F17" },
       estoque: { label: "Em estoque", fg: "#A9BACD", bg: "#1B2837" },
-      vendida: { label: "Vendida", fg: "#241D38" },
+      vendida: { label: "Vendida", fg: "#5F4E93", bg: "#241D38" },
     },
   },
 };
@@ -232,7 +230,6 @@ export default function PainelGestaoAtivos() {
 
   const T = THEMES[themeMode];
 
-  // Registo centralizado de ações para a aba Histórico
   const registrarHistorico = async (acao, detalhes) => {
     try {
       await addDoc(collection(db, "historico"), {
@@ -259,7 +256,6 @@ export default function PainelGestaoAtivos() {
 
     const unsubHist = onSnapshot(collection(db, "historico"), (snapshot) => {
       const data = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-      // Ordenar por horário descendente
       data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setHistorico(data);
     });
@@ -372,7 +368,6 @@ export default function PainelGestaoAtivos() {
             <span className="pg-font-display font-bold text-lg">Gestão de Ativos</span>
           </div>
 
-          {/* Abas Restauradas */}
           <nav className="flex items-center gap-1">
             <button onClick={() => setTab("dashboard")} className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 ${tab === "dashboard" ? "font-semibold" : ""}`} style={{ background: tab === "dashboard" ? T.primarySoft : "transparent", color: tab === "dashboard" ? T.primary : T.inkSoft }}>
               <LayoutGrid size={18} /> <span className="hidden md:inline">Dashboard</span>
@@ -400,7 +395,6 @@ export default function PainelGestaoAtivos() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
-        {/* TAB: DASHBOARD */}
         {tab === "dashboard" && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -439,7 +433,6 @@ export default function PainelGestaoAtivos() {
           </div>
         )}
 
-        {/* TAB: ATIVOS / BMS */}
         {tab === "bms" && (
           <div className="flex flex-col gap-4">
             <div className="p-4 rounded-2xl border flex flex-col sm:flex-row gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
@@ -499,7 +492,6 @@ export default function PainelGestaoAtivos() {
           </div>
         )}
 
-        {/* TAB: FORNECEDORES */}
         {tab === "fornecedores" && (
           <div className="flex flex-col gap-6">
             <form onSubmit={handleAddFornecedor} className="p-6 rounded-2xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
@@ -533,7 +525,6 @@ export default function PainelGestaoAtivos() {
           </div>
         )}
 
-        {/* TAB: HISTÓRICO (Restaurado) */}
         {tab === "historico" && (
           <div className="flex flex-col gap-4">
             <div className="rounded-2xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
@@ -562,7 +553,6 @@ export default function PainelGestaoAtivos() {
         )}
       </main>
 
-      {/* Modal de Criação / Edição */}
       {isModalOpen && (
         <BMModal
           initial={editingBm}
