@@ -34,5 +34,4 @@ async function saveFornecedores(f) {
 }
 
 export default App;
-  }
-}
+
