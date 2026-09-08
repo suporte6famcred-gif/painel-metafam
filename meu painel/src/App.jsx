@@ -32,3 +32,7 @@ async function saveFornecedores(f) {
     return false;
   }
 }
+
+export default App;
+  }
+}
