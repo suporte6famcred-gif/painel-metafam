@@ -13,6 +13,10 @@ import {
   Sun,
   Moon,
   ShieldCheck,
+  Download,
+  AlertTriangle,
+  Calendar,
+  Filter,
 } from "lucide-react";
 import {
   BarChart,
@@ -88,7 +92,7 @@ const emptyBM = () => ({
   telefone: "",
   status: "estoque",
   fornecedor: "",
-  dataCompra: "",
+  dataCompra: new Date().toISOString().split("T")[0],
   valor: "",
   dataConexao: "",
   observacoes: "",
@@ -154,7 +158,7 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Field label="Nome da BM / Identificador" T={T}>
+          <Field label="Nome da BM / Identificador *" T={T}>
             <input required value={f.nome} onChange={set("nome")} placeholder="Ex: BM 01 - Perfil Principal" className={inputCls} style={inputStyleFor(T)} />
           </Field>
 
@@ -196,8 +200,8 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
             </Field>
           </div>
 
-          <Field label="Observações" T={T}>
-            <textarea rows={3} value={f.observacoes} onChange={set("observacoes")} placeholder="Anotações internas, IDs adicionais..." className={inputCls} style={inputStyleFor(T)} />
+          <Field label="Observações e Anotações Internas" T={T}>
+            <textarea rows={3} value={f.observacoes} onChange={set("observacoes")} placeholder="Links de perfil, IDs adicionais, histórico de problemas..." className={inputCls} style={inputStyleFor(T)} />
           </Field>
 
           <div className="flex justify-end gap-3 mt-3 border-t pt-4" style={{ borderColor: T.borderSoft }}>
@@ -222,8 +226,11 @@ export default function PainelGestaoAtivos() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBm, setEditingBm] = useState(null);
   
+  // Filtros
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
 
   const [fornNome, setFornNome] = useState("");
   const [fornContato, setFornContato] = useState("");
@@ -307,6 +314,36 @@ export default function PainelGestaoAtivos() {
     }
   };
 
+  // Exportação CSV
+  const exportarCSV = () => {
+    if (filteredBMs.length === 0) return alert("Nenhum dado para exportar.");
+
+    const headers = ["ID,Nome,Status,Telefone,Fornecedor,Valor,Data Compra,Data Conexao,Observacoes"];
+    const rows = filteredBMs.map(b => 
+      `"${b.id}","${b.nome || ''}","${b.status || ''}","${b.telefone || ''}","${b.fornecedor || ''}","${b.valor || 0}","${b.dataCompra || ''}","${b.dataConexao || ''}","${(b.observacoes || '').replace(/"/g, '""')}"`
+    );
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers, ...rows].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `relatorio_ativos_${new Date().toISOString().split("T")[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // Cálculo de inatividade no estoque (> 15 dias)
+  const bmsInativasEstoque = useMemo(() => {
+    const hoje = new Date();
+    return bms.filter(b => {
+      if (b.status !== "estoque" || !b.dataCompra) return false;
+      const dataC = new Date(b.dataCompra);
+      const diffDias = Math.floor((hoje - dataC) / (1000 * 60 * 60 * 24));
+      return diffDias > 15;
+    });
+  }, [bms]);
+
   const stats = useMemo(() => {
     let gastoTotal = 0, ativas = 0, estoque = 0, banidas = 0;
     bms.forEach((b) => {
@@ -342,16 +379,22 @@ export default function PainelGestaoAtivos() {
       const matchSearch = (b.nome || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.fornecedor || "").toLowerCase().includes(search.toLowerCase()) ||
         (b.telefone || "").toLowerCase().includes(search.toLowerCase());
+      
       const matchStatus = statusFilter === "todos" || b.status === statusFilter;
-      return matchSearch && matchStatus;
+      
+      let matchData = true;
+      if (startDate && b.dataCompra) matchData = matchData && b.dataCompra >= startDate;
+      if (endDate && b.dataCompra) matchData = matchData && b.dataCompra <= endDate;
+
+      return matchSearch && matchStatus && matchData;
     });
-  }, [bms, search, statusFilter]);
+  }, [bms, search, statusFilter, startDate, endDate]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center gap-2" style={{ background: T.bg, color: T.ink }}>
         <Loader2 size={24} className="animate-spin" />
-        <span className="pg-font-body text-sm">Carregando painel...</span>
+        <span className="pg-font-body text-sm">Carregando painel de ativos...</span>
       </div>
     );
   }
@@ -365,7 +408,7 @@ export default function PainelGestaoAtivos() {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ background: T.primary }}>
               <ShieldCheck size={20} />
             </div>
-            <span className="pg-font-display font-bold text-lg">Gestão de Ativos</span>
+            <span className="pg-font-display font-bold text-lg">Gestão Pro</span>
           </div>
 
           <nav className="flex items-center gap-1">
@@ -395,6 +438,16 @@ export default function PainelGestaoAtivos() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 py-8">
+        {/* Banner de Alerta de Estoque Parado */}
+        {bmsInativasEstoque.length > 0 && (
+          <div className="mb-6 p-4 rounded-xl border flex items-center gap-3" style={{ background: T.STATUS.em_recurso.bg, borderColor: T.gold, color: T.STATUS.em_recurso.fg }}>
+            <AlertTriangle size={20} className="shrink-0" />
+            <div className="text-sm">
+              <strong>Atenção:</strong> Você tem <b>{bmsInativasEstoque.length}</b> ativo(s) no estoque há mais de 15 dias sem ativação.
+            </div>
+          </div>
+        )}
+
         {tab === "dashboard" && (
           <div className="flex flex-col gap-6">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -435,19 +488,35 @@ export default function PainelGestaoAtivos() {
 
         {tab === "bms" && (
           <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-2xl border flex flex-col sm:flex-row gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border }}>
-                <Search size={18} style={{ color: T.inkFaint }} />
-                <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar ativo, fornecedor ou telefone..." className="w-full bg-transparent text-sm outline-none" style={{ color: T.ink }} />
+            <div className="p-4 rounded-2xl border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="flex flex-col md:flex-row gap-3">
+                <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border }}>
+                  <Search size={18} style={{ color: T.inkFaint }} />
+                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, fornecedor ou telefone..." className="w-full bg-transparent text-sm outline-none" style={{ color: T.ink }} />
+                </div>
+                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
+                  <option value="todos">Todos os Status</option>
+                  <option value="ativa">Ativa</option>
+                  <option value="estoque">Estoque</option>
+                  <option value="em_recurso">Recurso</option>
+                  <option value="banida">Banida</option>
+                  <option value="vendida">Vendida</option>
+                </select>
+                <button onClick={exportarCSV} className="px-4 py-2 rounded-lg text-sm font-medium border flex items-center justify-center gap-2" style={{ borderColor: T.border, color: T.ink }}>
+                  <Download size={16} /> Exportar CSV
+                </button>
               </div>
-              <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
-                <option value="todos">Todos os Status</option>
-                <option value="ativa">Ativa</option>
-                <option value="estoque">Estoque</option>
-                <option value="em_recurso">Recurso</option>
-                <option value="banida">Banida</option>
-                <option value="vendida">Vendida</option>
-              </select>
+
+              {/* Filtros por Data */}
+              <div className="flex flex-wrap items-center gap-3 pt-2 border-t text-xs" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
+                <span className="flex items-center gap-1 font-semibold"><Filter size={14} /> Filtro Compra:</span>
+                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-2 py-1 rounded border text-xs" style={inputStyleFor(T)} />
+                <span>até</span>
+                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-2 py-1 rounded border text-xs" style={inputStyleFor(T)} />
+                {(startDate || endDate) && (
+                  <button onClick={() => { setStartDate(""); setEndDate(""); }} className="text-red-500 underline ml-2">Limpar datas</button>
+                )}
+              </div>
             </div>
 
             <div className="rounded-2xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
@@ -458,6 +527,7 @@ export default function PainelGestaoAtivos() {
                     <th className="p-4">Status</th>
                     <th className="p-4">Telefone</th>
                     <th className="p-4">Fornecedor</th>
+                    <th className="p-4">Data Compra</th>
                     <th className="p-4 text-right">Valor</th>
                     <th className="p-4 text-right">Ações</th>
                   </tr>
@@ -465,7 +535,7 @@ export default function PainelGestaoAtivos() {
                 <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
                   {filteredBMs.length === 0 ? (
                     <tr>
-                      <td colSpan="6" className="p-8 text-center" style={{ color: T.inkFaint }}>Nenhum ativo localizado.</td>
+                      <td colSpan="7" className="p-8 text-center" style={{ color: T.inkFaint }}>Nenhum ativo localizado com os filtros aplicados.</td>
                     </tr>
                   ) : (
                     filteredBMs.map((bm) => (
@@ -474,6 +544,7 @@ export default function PainelGestaoAtivos() {
                         <td className="p-4"><StatusBadge status={bm.status} T={T} /></td>
                         <td className="p-4" style={{ color: T.inkSoft }}>{bm.telefone || "—"}</td>
                         <td className="p-4" style={{ color: T.inkSoft }}>{bm.fornecedor || "—"}</td>
+                        <td className="p-4 pg-tnum" style={{ color: T.inkSoft }}>{bm.dataCompra ? new Date(bm.dataCompra + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
                         <td className="p-4 text-right pg-tnum font-medium">{brl(bm.valor)}</td>
                         <td className="p-4 text-right">
                           <button onClick={() => { setEditingBm(bm); setIsModalOpen(true); }} className="p-1.5 mr-1 rounded hover:bg-opacity-10 hover:bg-black" style={{ color: T.primary }}>
@@ -495,7 +566,7 @@ export default function PainelGestaoAtivos() {
         {tab === "fornecedores" && (
           <div className="flex flex-col gap-6">
             <form onSubmit={handleAddFornecedor} className="p-6 rounded-2xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex-1 w-full"><Field label="Nome do Fornecedor" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
+              <div className="flex-1 w-full"><Field label="Nome do Fornecedor *" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
               <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
               <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Cadastrar</button>
             </form>
