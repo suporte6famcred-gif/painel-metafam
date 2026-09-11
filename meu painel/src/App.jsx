@@ -715,7 +715,7 @@ export default function PainelGestaoAtivos() {
             <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ background: T.primary }}>
               <ShieldCheck size={20} />
             </div>
-            <span className="pg-font-display font-bold text-lg hidden sm:inline">Gestão Pro</span>
+            <span className="pg-font-display font-bold text-lg hidden sm:inline">WA Base by alvr</span>
           </div>
 
           <nav className="flex items-center gap-1 overflow-x-auto pg-scroll">
