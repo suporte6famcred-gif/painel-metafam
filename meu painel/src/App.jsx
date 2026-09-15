@@ -23,7 +23,7 @@ import {
   Check,
   Repeat,
   RotateCcw,
-  Signal,
+  Menu,
 } from "lucide-react";
 import {
   BarChart,
@@ -71,47 +71,51 @@ const COLOR_PRESETS = [
 
 const THEMES = {
   light: {
-    bg: "#F3F6FA",
+    bg: "#F1F3F5",
     surface: "#FFFFFF",
-    ink: "#0F2338",
-    inkSoft: "#51617A",
-    inkFaint: "#8B9AB2",
-    border: "#DFE6EF",
-    borderSoft: "#EBF0F5",
-    overlay: "rgba(10,20,35,0.45)",
+    surfaceAlt: "#F7F8FA",
+    rail: "#FFFFFF",
+    ink: "#131A22",
+    inkSoft: "#57667A",
+    inkFaint: "#96A3B3",
+    border: "#E1E6EB",
+    borderSoft: "#EBEEF1",
+    overlay: "rgba(10,16,24,0.5)",
     STATUS: {
-      ativa: { label: "Ativa", fg: "#256B45", bg: "#E1F1E7" },
-      em_recurso: { label: "Em recurso", fg: "#A8791F", bg: "#F5EEDC" },
-      banida: { label: "Banida", fg: "#A3402B", bg: "#F6E4DE" },
-      estoque: { label: "Em estoque", fg: "#4E6072", bg: "#E8EDF2" },
-      vendida: { label: "Vendida", fg: "#5F4E93", bg: "#EAE5F3" },
+      ativa: { label: "Ativa", fg: "#1F7A4D" },
+      em_recurso: { label: "Em recurso", fg: "#A8791F" },
+      banida: { label: "Banida", fg: "#A3402B" },
+      estoque: { label: "Em estoque", fg: "#57667A" },
+      vendida: { label: "Vendida", fg: "#6A4FA0" },
     },
     QUALIDADE: {
-      alta: { label: "Alta", fg: "#256B45", bg: "#E1F1E7" },
-      media: { label: "Média", fg: "#A8791F", bg: "#F5EEDC" },
-      baixa: { label: "Baixa", fg: "#A3402B", bg: "#F6E4DE" },
+      alta: { label: "Alta", fg: "#1F7A4D" },
+      media: { label: "Média", fg: "#A8791F" },
+      baixa: { label: "Baixa", fg: "#A3402B" },
     },
   },
   dark: {
-    bg: "#0A1420",
-    surface: "#101C2C",
-    ink: "#E9F0F8",
-    inkSoft: "#93A6BE",
-    inkFaint: "#5E7086",
-    border: "#213247",
-    borderSoft: "#182636",
-    overlay: "rgba(3,8,15,0.6)",
+    bg: "#0A0E14",
+    surface: "#10151D",
+    surfaceAlt: "#141A23",
+    rail: "#0D1219",
+    ink: "#E8ECF1",
+    inkSoft: "#8B98A8",
+    inkFaint: "#586374",
+    border: "#1E2733",
+    borderSoft: "#161D26",
+    overlay: "rgba(3,6,10,0.65)",
     STATUS: {
-      ativa: { label: "Ativa", fg: "#6FCB94", bg: "#153826" },
-      em_recurso: { label: "Em recurso", fg: "#E3BA6C", bg: "#2E2413" },
-      banida: { label: "Banida", fg: "#E58868", bg: "#341F17" },
-      estoque: { label: "Em estoque", fg: "#A9BACD", bg: "#1B2837" },
-      vendida: { label: "Vendida", fg: "#B6A4E6", bg: "#241D38" },
+      ativa: { label: "Ativa", fg: "#5FD08B" },
+      em_recurso: { label: "Em recurso", fg: "#E3BA6C" },
+      banida: { label: "Banida", fg: "#E58868" },
+      estoque: { label: "Em estoque", fg: "#93A2B5" },
+      vendida: { label: "Vendida", fg: "#B29CE8" },
     },
     QUALIDADE: {
-      alta: { label: "Alta", fg: "#6FCB94", bg: "#153826" },
-      media: { label: "Média", fg: "#E3BA6C", bg: "#2E2413" },
-      baixa: { label: "Baixa", fg: "#E58868", bg: "#341F17" },
+      alta: { label: "Alta", fg: "#5FD08B" },
+      media: { label: "Média", fg: "#E3BA6C" },
+      baixa: { label: "Baixa", fg: "#E58868" },
     },
   },
 };
@@ -149,10 +153,12 @@ const emptyBM = () => ({
 function FontStyles() {
   return (
     <style>{`
-      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
       .pg-font-display { font-family: 'Space Grotesk', sans-serif; }
       .pg-font-body { font-family: 'Inter', sans-serif; }
+      .pg-font-mono { font-family: 'JetBrains Mono', monospace; }
       .pg-tnum { font-variant-numeric: tabular-nums; }
+      .pg-mono { font-family: 'JetBrains Mono', monospace; font-variant-numeric: tabular-nums; }
       .pg-scroll::-webkit-scrollbar { height: 8px; width: 8px; }
       .pg-scroll::-webkit-scrollbar-thumb { background: rgba(128,128,128,0.3); border-radius: 8px; }
     `}</style>
@@ -180,24 +186,79 @@ const inputStyleFor = (T) => ({
 function StatusBadge({ status, T }) {
   const cfg = T.STATUS[status] || T.STATUS.estoque;
   return (
-    <span
-      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-      style={{ backgroundColor: cfg.bg, color: cfg.fg }}
-    >
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: cfg.fg }}>
+      <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: cfg.fg }} />
       {cfg.label}
     </span>
   );
 }
 
+/* Barras de sinal — reflete a "qualidade do WABA" no vocabulário do próprio domínio */
 function QualidadeBadge({ qualidade, T }) {
   const cfg = T.QUALIDADE[qualidade] || T.QUALIDADE.media;
+  const nivel = qualidade === "alta" ? 3 : qualidade === "baixa" ? 1 : 2;
   return (
-    <span
-      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
-      style={{ backgroundColor: cfg.bg, color: cfg.fg }}
-    >
-      <Signal size={11} /> {cfg.label}
+    <span className="inline-flex items-center gap-1.5 text-xs font-medium" style={{ color: cfg.fg }}>
+      <span className="inline-flex items-end gap-[2px]">
+        {[1, 2, 3].map((i) => (
+          <span
+            key={i}
+            className="w-[3px] rounded-sm"
+            style={{ height: `${i * 3 + 2}px`, background: i <= nivel ? cfg.fg : T.borderSoft }}
+          />
+        ))}
+      </span>
+      {cfg.label}
     </span>
+  );
+}
+
+/* Fita de indicadores — números sempre em mono, separados por traço fino (não cards repetidos) */
+function StatStrip({ items, T }) {
+  return (
+    <div className="rounded-xl border flex flex-wrap overflow-hidden" style={{ borderColor: T.borderSoft, background: T.surface }}>
+      {items.map((it, i) => (
+        <div
+          key={it.label}
+          className="flex-1 min-w-[150px] p-5"
+          style={{ borderRight: i < items.length - 1 ? `1px solid ${T.borderSoft}` : "none" }}
+        >
+          <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>{it.label}</div>
+          <div className="pg-mono text-2xl font-semibold" style={{ color: it.color || T.ink }}>{it.value}</div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* Trilho do ciclo de vida do ativo — o único elemento "ousado" e específico do domínio */
+const CICLO_ORDEM = ["estoque", "ativa", "em_recurso", "banida", "vendida"];
+function TrilhoCiclo({ bms, T }) {
+  const contagens = useMemo(() => {
+    const c = { estoque: 0, ativa: 0, em_recurso: 0, banida: 0, vendida: 0 };
+    bms.forEach((b) => { if (c[b.status] !== undefined) c[b.status]++; });
+    return c;
+  }, [bms]);
+  const max = Math.max(1, ...CICLO_ORDEM.map((k) => contagens[k]));
+  return (
+    <div className="px-4 py-4">
+      <div className="text-xs mb-3" style={{ color: T.inkFaint }}>Fluxo de ativos</div>
+      <div className="flex flex-col gap-2.5">
+        {CICLO_ORDEM.map((k) => {
+          const cfg = T.STATUS[k];
+          const pct = Math.max(6, (contagens[k] / max) * 100);
+          return (
+            <div key={k} className="flex items-center gap-2">
+              <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ background: cfg.fg }} />
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: T.borderSoft }}>
+                <div className="h-full rounded-full" style={{ width: `${pct}%`, background: cfg.fg }} />
+              </div>
+              <span className="pg-mono text-xs w-5 text-right shrink-0" style={{ color: T.inkSoft }}>{contagens[k]}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -273,7 +334,7 @@ function TagsInput({ value, onChange, T }) {
 function ColorPickerPanel({ color, onChange, T, onClose }) {
   return (
     <div
-      className="absolute right-0 top-12 z-50 w-64 rounded-2xl p-4 shadow-xl"
+      className="absolute right-0 top-12 z-50 w-64 rounded-xl p-4 border"
       style={{ background: T.surface, border: `1px solid ${T.borderSoft}` }}
     >
       <div className="flex items-center justify-between mb-3">
@@ -322,8 +383,8 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: T.overlay }}>
       <div
-        className="w-full max-w-lg rounded-2xl p-6 shadow-2xl flex flex-col gap-5 max-h-[90vh] overflow-y-auto pg-scroll"
-        style={{ background: T.surface, color: T.ink }}
+        className="w-full max-w-lg rounded-xl p-6 border flex flex-col gap-5 max-h-[90vh] overflow-y-auto pg-scroll"
+        style={{ background: T.surface, color: T.ink, borderColor: T.border }}
       >
         <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: T.borderSoft }}>
           <h3 className="pg-font-display text-lg font-semibold">{initial?.id ? "Editar Ativo / BM" : "Novo Ativo / BM"}</h3>
@@ -462,7 +523,7 @@ function PainelRodizio({ bms, T, onMarcarUso, onDesfazerUso }) {
   }, [elegiveis, emUsoHoje, emDescanso]);
 
   const Coluna = ({ titulo, cor, itens, children }) => (
-    <div className="flex-1 min-w-[260px] rounded-2xl border flex flex-col" style={{ background: T.surface, borderColor: T.borderSoft }}>
+    <div className="flex-1 min-w-[260px] rounded-xl border flex flex-col" style={{ background: T.surface, borderColor: T.borderSoft }}>
       <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: T.borderSoft }}>
         <span className="pg-font-display font-semibold text-sm flex items-center gap-2">
           <span className="w-2 h-2 rounded-full" style={{ background: cor }} />
@@ -566,6 +627,7 @@ export default function PainelGestaoAtivos() {
   const [themeMode, setThemeMode] = useState("light");
   const [customColor, setCustomColor] = useState("#0B4C82");
   const [showColorPicker, setShowColorPicker] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   const [bms, setBms] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
@@ -920,74 +982,131 @@ export default function PainelGestaoAtivos() {
     </select>
   );
 
+  const NAV_ITEMS = [
+    { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
+    { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
+    { id: "rodizio", label: "Rodízio", icon: Repeat },
+    { id: "financeiro", label: "Financeiro", icon: Wallet },
+    { id: "fornecedores", label: "Fornecedores", icon: Building2 },
+    { id: "historico", label: "Histórico", icon: History },
+  ];
+  const paginaAtual = NAV_ITEMS.find((n) => n.id === tab)?.label || "";
+
+  const NavButton = ({ item, onClick }) => {
+    const Icon = item.icon;
+    const active = tab === item.id;
+    return (
+      <button
+        onClick={onClick}
+        className="w-full flex items-center gap-3 pl-3 pr-2.5 py-2 text-sm rounded-lg shrink-0"
+        style={{
+          background: active ? T.primarySoft : "transparent",
+          color: active ? T.primary : T.inkSoft,
+          fontWeight: active ? 600 : 500,
+          borderLeft: active ? `2px solid ${T.primary}` : "2px solid transparent",
+        }}
+      >
+        <Icon size={17} />
+        <span className="flex-1 text-left">{item.label}</span>
+        {typeof item.count === "number" && (
+          <span className="pg-mono text-xs" style={{ color: active ? T.primary : T.inkFaint }}>{item.count}</span>
+        )}
+      </button>
+    );
+  };
+
   return (
-    <div className="min-h-screen" style={{ background: T.bg, color: T.ink }}>
+    <div className="min-h-screen flex" style={{ background: T.bg, color: T.ink }}>
       <FontStyles />
-      <header className="border-b sticky top-0 z-40 backdrop-blur-md" style={{ background: T.surface + "EE", borderColor: T.borderSoft }}>
-        <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-3 shrink-0">
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white" style={{ background: T.primary }}>
-              <ShieldCheck size={20} />
-            </div>
-            <span className="pg-font-display font-bold text-lg hidden sm:inline">WA Base by alvr</span>
+
+      {/* Sidebar (desktop) */}
+      <aside
+        className="hidden md:flex flex-col w-60 shrink-0 border-r h-screen sticky top-0"
+        style={{ background: T.rail, borderColor: T.borderSoft }}
+      >
+        <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0" style={{ borderColor: T.borderSoft }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: T.primary }}>
+            <ShieldCheck size={17} />
           </div>
-
-          <nav className="flex items-center gap-1 overflow-x-auto pg-scroll">
-            {[
-              { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
-              { id: "bms", label: "Ativos / BMs", icon: Boxes },
-              { id: "financeiro", label: "Financeiro", icon: Wallet },
-              { id: "fornecedores", label: "Fornecedores", icon: Building2 },
-              { id: "historico", label: "Histórico", icon: History },
-              { id: "rodizio", label: "Rodízio", icon: Repeat },
-            ].map((item) => {
-              const Icon = item.icon;
-              const active = tab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setTab(item.id)}
-                  className={`px-3 py-2 rounded-lg text-sm flex items-center gap-2 shrink-0 ${active ? "font-semibold" : ""}`}
-                  style={{ background: active ? T.primarySoft : "transparent", color: active ? T.primary : T.inkSoft }}
-                >
-                  <Icon size={18} /> <span className="hidden md:inline">{item.label}</span>
-                </button>
-              );
-            })}
-          </nav>
-
-          <div className="flex items-center gap-2 shrink-0 relative">
-            <button
-              onClick={() => setShowColorPicker((s) => !s)}
-              className="p-2 rounded-lg border"
-              style={{ borderColor: T.border }}
-              title="Escolher cor do painel"
-            >
-              <Palette size={18} />
-            </button>
-            {showColorPicker && (
-              <ColorPickerPanel
-                color={customColor}
-                onChange={setCustomColor}
-                T={T}
-                onClose={() => setShowColorPicker(false)}
-              />
-            )}
-            <button onClick={() => setThemeMode(themeMode === "light" ? "dark" : "light")} className="p-2 rounded-lg border" style={{ borderColor: T.border }}>
-              {themeMode === "light" ? <Moon size={18} /> : <Sun size={18} />}
-            </button>
-            <button onClick={() => { setEditingBm(null); setIsModalOpen(true); }} className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2" style={{ background: T.primary }}>
-              <Plus size={18} /> <span className="hidden sm:inline">Novo Ativo</span>
-            </button>
+          <div className="leading-tight">
+            <div className="pg-font-display font-bold text-sm">WA Base</div>
+            <div className="text-[11px]" style={{ color: T.inkFaint }}>by alvr</div>
           </div>
         </div>
-      </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-8">
+        <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto pg-scroll">
+          {NAV_ITEMS.map((item) => (
+            <NavButton key={item.id} item={item} onClick={() => setTab(item.id)} />
+          ))}
+        </nav>
+
+        <div className="border-t" style={{ borderColor: T.borderSoft }}>
+          <TrilhoCiclo bms={bms} T={T} />
+        </div>
+
+        <div className="p-3 border-t flex items-center gap-2 relative" style={{ borderColor: T.borderSoft }}>
+          <button
+            onClick={() => setShowColorPicker((s) => !s)}
+            className="p-2 rounded-lg border"
+            style={{ borderColor: T.border }}
+            title="Escolher cor do painel"
+          >
+            <Palette size={16} />
+          </button>
+          {showColorPicker && (
+            <ColorPickerPanel color={customColor} onChange={setCustomColor} T={T} onClose={() => setShowColorPicker(false)} />
+          )}
+          <button
+            onClick={() => setThemeMode(themeMode === "light" ? "dark" : "light")}
+            className="p-2 rounded-lg border"
+            style={{ borderColor: T.border }}
+            title="Alternar tema"
+          >
+            {themeMode === "light" ? <Moon size={16} /> : <Sun size={16} />}
+          </button>
+        </div>
+      </aside>
+
+      {/* Nav mobile */}
+      {mobileNavOpen && (
+        <div className="fixed inset-0 z-50 md:hidden flex" style={{ background: T.overlay }} onClick={() => setMobileNavOpen(false)}>
+          <div className="w-64 h-full flex flex-col p-3" style={{ background: T.rail }} onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2 px-1">
+              <span className="pg-font-display font-bold text-sm">WA Base</span>
+              <button onClick={() => setMobileNavOpen(false)}><X size={18} color={T.inkSoft} /></button>
+            </div>
+            {NAV_ITEMS.map((item) => (
+              <NavButton key={item.id} item={item} onClick={() => { setTab(item.id); setMobileNavOpen(false); }} />
+            ))}
+            <div className="border-t mt-2 pt-2" style={{ borderColor: T.borderSoft }}>
+              <TrilhoCiclo bms={bms} T={T} />
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex-1 min-w-0 flex flex-col">
+        <div className="flex items-center justify-between gap-3 px-4 md:px-8 h-16 border-b sticky top-0 z-30 backdrop-blur-md" style={{ background: T.bg + "EE", borderColor: T.borderSoft }}>
+          <div className="flex items-center gap-3 min-w-0">
+            <button onClick={() => setMobileNavOpen(true)} className="md:hidden p-2 rounded-lg border" style={{ borderColor: T.border }}>
+              <Menu size={18} />
+            </button>
+            <h2 className="pg-font-display font-semibold text-lg truncate">{paginaAtual}</h2>
+          </div>
+          <button
+            onClick={() => { setEditingBm(null); setIsModalOpen(true); }}
+            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0"
+            style={{ background: T.primary }}
+          >
+            <Plus size={18} /> <span className="hidden sm:inline">Novo Ativo</span>
+          </button>
+        </div>
+
+        <main className="px-4 md:px-8 py-8 flex-1 min-w-0">
         {bmsInativasEstoque.length > 0 && (
-          <div className="mb-6 p-4 rounded-xl border flex items-center gap-3" style={{ background: T.STATUS.em_recurso.bg, borderColor: T.STATUS.em_recurso.fg + "55", color: T.STATUS.em_recurso.fg }}>
+          <div className="mb-6 p-4 rounded-xl border flex items-center gap-3" style={{ borderColor: T.STATUS.em_recurso.fg + "55", color: T.STATUS.em_recurso.fg }}>
             <AlertTriangle size={20} className="shrink-0" />
-            <div className="text-sm">
+            <div className="text-sm" style={{ color: T.ink }}>
               <strong>Atenção:</strong> Você tem <b>{bmsInativasEstoque.length}</b> ativo(s) no estoque há mais de 15 dias sem ativação.
             </div>
           </div>
@@ -1000,27 +1119,18 @@ export default function PainelGestaoAtivos() {
               <MesSelector />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Total BMs/Ativos</span>
-                <div className="text-2xl font-bold pg-font-display pg-tnum mt-1">{stats.totalBMs}</div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Gasto no período</span>
-                <div className="text-2xl font-bold pg-font-display pg-tnum mt-1" style={{ color: T.STATUS.em_recurso.fg }}>{brl(gastoMes)}</div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>BMs Ativas agora</span>
-                <div className="text-2xl font-bold pg-font-display pg-tnum mt-1" style={{ color: T.STATUS.ativa.fg }}>{stats.ativas}</div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Taxa de Operação</span>
-                <div className="text-2xl font-bold pg-font-display pg-tnum mt-1">{stats.taxaAtivas}%</div>
-              </div>
-            </div>
+            <StatStrip
+              T={T}
+              items={[
+                { label: "Total BMs/Ativos", value: stats.totalBMs },
+                { label: "Gasto no período", value: brl(gastoMes), color: T.STATUS.em_recurso.fg },
+                { label: "BMs ativas agora", value: stats.ativas, color: T.STATUS.ativa.fg },
+                { label: "Taxa de operação", value: `${stats.taxaAtivas}%` },
+              ]}
+            />
 
             {/* Metas do mês */}
-            <div className="rounded-2xl p-6 border grid md:grid-cols-2 gap-6" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl p-6 border grid md:grid-cols-2 gap-6" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <Wallet size={16} color={T.primary} />
@@ -1062,7 +1172,7 @@ export default function PainelGestaoAtivos() {
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
-              <div className="rounded-2xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
                 <span className="pg-font-display font-semibold text-sm">Distribuição por Status</span>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
@@ -1077,7 +1187,7 @@ export default function PainelGestaoAtivos() {
                 </div>
               </div>
 
-              <div className="rounded-2xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
                 <span className="pg-font-display font-semibold text-sm">Tendência de gasto (últimos meses)</span>
                 <div className="h-64">
                   {tendenciaMensal.length === 0 ? (
@@ -1103,7 +1213,7 @@ export default function PainelGestaoAtivos() {
 
         {tab === "bms" && (
           <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-2xl border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="p-4 rounded-xl border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <div className="flex flex-col md:flex-row gap-3">
                 <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border }}>
                   <Search size={18} style={{ color: T.inkFaint }} />
@@ -1167,7 +1277,7 @@ export default function PainelGestaoAtivos() {
               )}
             </div>
 
-            <div className="rounded-2xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
@@ -1228,31 +1338,21 @@ export default function PainelGestaoAtivos() {
               <MesSelector />
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Orçamento do período</span>
-                <div className="text-xl font-bold pg-font-display pg-tnum mt-1">{brl(metaAtual.orcamento || 0)}</div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Gasto no período</span>
-                <div className="text-xl font-bold pg-font-display pg-tnum mt-1" style={{ color: T.gold || T.primary }}>{brl(gastoMes)}</div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Saldo restante</span>
-                <div
-                  className="text-xl font-bold pg-font-display pg-tnum mt-1"
-                  style={{ color: (Number(metaAtual.orcamento) || 0) - gastoMes < 0 ? "#A3402B" : "#256B45" }}
-                >
-                  {brl((Number(metaAtual.orcamento) || 0) - gastoMes)}
-                </div>
-              </div>
-              <div className="p-5 rounded-2xl border" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Ativos no período</span>
-                <div className="text-xl font-bold pg-font-display pg-tnum mt-1">{bmsDoMes.length}</div>
-              </div>
-            </div>
+            <StatStrip
+              T={T}
+              items={[
+                { label: "Orçamento do período", value: brl(metaAtual.orcamento || 0) },
+                { label: "Gasto no período", value: brl(gastoMes), color: T.primary },
+                {
+                  label: "Saldo restante",
+                  value: brl((Number(metaAtual.orcamento) || 0) - gastoMes),
+                  color: (Number(metaAtual.orcamento) || 0) - gastoMes < 0 ? "#A3402B" : T.STATUS.ativa.fg,
+                },
+                { label: "Ativos no período", value: bmsDoMes.length },
+              ]}
+            />
 
-            <div className="rounded-2xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <span className="pg-font-display font-semibold text-sm">Gasto por fornecedor — {monthLabel(mesSelecionado)}</span>
               {gastoPorFornecedorChart.length === 0 ? (
                 <div className="h-56 flex items-center justify-center text-sm" style={{ color: T.inkFaint }}>
@@ -1273,7 +1373,7 @@ export default function PainelGestaoAtivos() {
               )}
             </div>
 
-            <div className="rounded-2xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
@@ -1308,13 +1408,13 @@ export default function PainelGestaoAtivos() {
 
         {tab === "fornecedores" && (
           <div className="flex flex-col gap-6">
-            <form onSubmit={handleAddFornecedor} className="p-6 rounded-2xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <form onSubmit={handleAddFornecedor} className="p-6 rounded-xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <div className="flex-1 w-full"><Field label="Nome do Fornecedor *" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
               <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
               <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Cadastrar</button>
             </form>
 
-            <div className="rounded-2xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
@@ -1341,7 +1441,7 @@ export default function PainelGestaoAtivos() {
 
         {tab === "historico" && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-2xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="rounded-xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <div className="p-4 border-b font-medium text-sm" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
                 Atividades e Alterações Registradas
               </div>
@@ -1374,7 +1474,8 @@ export default function PainelGestaoAtivos() {
             onDesfazerUso={handleDesfazerUsoRodizio}
           />
         )}
-      </main>
+        </main>
+      </div>
 
       {isModalOpen && (
         <BMModal
