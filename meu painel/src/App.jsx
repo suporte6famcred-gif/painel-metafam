@@ -21,6 +21,9 @@ import {
   Palette,
   Target,
   Check,
+  Repeat,
+  RotateCcw,
+  Signal,
 } from "lucide-react";
 import {
   BarChart,
@@ -83,6 +86,11 @@ const THEMES = {
       estoque: { label: "Em estoque", fg: "#4E6072", bg: "#E8EDF2" },
       vendida: { label: "Vendida", fg: "#5F4E93", bg: "#EAE5F3" },
     },
+    QUALIDADE: {
+      alta: { label: "Alta", fg: "#256B45", bg: "#E1F1E7" },
+      media: { label: "Média", fg: "#A8791F", bg: "#F5EEDC" },
+      baixa: { label: "Baixa", fg: "#A3402B", bg: "#F6E4DE" },
+    },
   },
   dark: {
     bg: "#0A1420",
@@ -100,6 +108,11 @@ const THEMES = {
       estoque: { label: "Em estoque", fg: "#A9BACD", bg: "#1B2837" },
       vendida: { label: "Vendida", fg: "#B6A4E6", bg: "#241D38" },
     },
+    QUALIDADE: {
+      alta: { label: "Alta", fg: "#6FCB94", bg: "#153826" },
+      media: { label: "Média", fg: "#E3BA6C", bg: "#2E2413" },
+      baixa: { label: "Baixa", fg: "#E58868", bg: "#341F17" },
+    },
   },
 };
 
@@ -108,6 +121,7 @@ const brl = (n) =>
   (Number(n) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 const hojeYYYYMM = () => new Date().toISOString().slice(0, 7);
+const hojeISO = () => new Date().toISOString().split("T")[0];
 const monthLabel = (m) => {
   if (m === "todos") return "Todos os períodos";
   const [y, mo] = m.split("-");
@@ -127,6 +141,9 @@ const emptyBM = () => ({
   dataConexao: "",
   observacoes: "",
   tags: [],
+  qualidade: "media",
+  ultimoUsoRodizio: "",
+  historicoUsoRodizio: [],
 });
 
 function FontStyles() {
@@ -168,6 +185,18 @@ function StatusBadge({ status, T }) {
       style={{ backgroundColor: cfg.bg, color: cfg.fg }}
     >
       {cfg.label}
+    </span>
+  );
+}
+
+function QualidadeBadge({ qualidade, T }) {
+  const cfg = T.QUALIDADE[qualidade] || T.QUALIDADE.media;
+  return (
+    <span
+      className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium"
+      style={{ backgroundColor: cfg.bg, color: cfg.fg }}
+    >
+      <Signal size={11} /> {cfg.label}
     </span>
   );
 }
@@ -351,6 +380,14 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
             </Field>
           </div>
 
+          <Field label="Qualidade do WABA" T={T}>
+            <select value={f.qualidade || "media"} onChange={set("qualidade")} className={inputCls} style={inputStyleFor(T)}>
+              <option value="alta">Alta</option>
+              <option value="media">Média</option>
+              <option value="baixa">Baixa</option>
+            </select>
+          </Field>
+
           <Field label="Tags" T={T}>
             <TagsInput value={f.tags || []} onChange={(tags) => setF({ ...f, tags })} T={T} />
           </Field>
@@ -364,6 +401,161 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
             <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Salvar Ativo</button>
           </div>
         </form>
+      </div>
+    </div>
+  );
+}
+
+/* ---------------- Rodízio: utilitários de pontuação ---------------- */
+const PESO_QUALIDADE = { alta: 3, media: 2, baixa: 1 };
+
+function diasDesde(dataISO) {
+  if (!dataISO) return null;
+  const d = new Date(dataISO + "T00:00:00");
+  const hoje = new Date(hojeISO() + "T00:00:00");
+  return Math.floor((hoje - d) / (1000 * 60 * 60 * 24));
+}
+
+function usosNosUltimosDias(historico, dias) {
+  if (!historico || historico.length === 0) return 0;
+  const limite = new Date();
+  limite.setDate(limite.getDate() - dias);
+  return historico.filter((d) => new Date(d + "T00:00:00") >= limite).length;
+}
+
+function calcularScore(bm) {
+  const pesoQ = PESO_QUALIDADE[bm.qualidade] || 2;
+  const dias = diasDesde(bm.ultimoUsoRodizio);
+  const diasFator = dias === null ? 14 : Math.min(dias, 14); // nunca usada = topo da fila
+  const usos7d = usosNosUltimosDias(bm.historicoUsoRodizio, 7);
+  return pesoQ * 10 + diasFator - usos7d * 6;
+}
+
+/* ---------------- Painel de Rodízio (kanban de disponibilidade) ---------------- */
+function PainelRodizio({ bms, T, onMarcarUso, onDesfazerUso }) {
+  const elegiveis = useMemo(
+    () => bms.filter((b) => b.status === "ativa" || b.status === "estoque"),
+    [bms]
+  );
+
+  const emUsoHoje = useMemo(
+    () => elegiveis.filter((b) => b.ultimoUsoRodizio === hojeISO()),
+    [elegiveis]
+  );
+
+  const emDescanso = useMemo(
+    () =>
+      elegiveis.filter((b) => {
+        if (b.ultimoUsoRodizio === hojeISO()) return false;
+        const usos7d = usosNosUltimosDias(b.historicoUsoRodizio, 7);
+        return b.qualidade === "baixa" || usos7d >= 3;
+      }),
+    [elegiveis]
+  );
+
+  const disponiveis = useMemo(() => {
+    const idsExcluidos = new Set([...emUsoHoje, ...emDescanso].map((b) => b.id));
+    return elegiveis
+      .filter((b) => !idsExcluidos.has(b.id))
+      .map((b) => ({ ...b, _score: calcularScore(b) }))
+      .sort((a, b) => b._score - a._score);
+  }, [elegiveis, emUsoHoje, emDescanso]);
+
+  const Coluna = ({ titulo, cor, itens, children }) => (
+    <div className="flex-1 min-w-[260px] rounded-2xl border flex flex-col" style={{ background: T.surface, borderColor: T.borderSoft }}>
+      <div className="p-4 border-b flex items-center justify-between" style={{ borderColor: T.borderSoft }}>
+        <span className="pg-font-display font-semibold text-sm flex items-center gap-2">
+          <span className="w-2 h-2 rounded-full" style={{ background: cor }} />
+          {titulo}
+        </span>
+        <span className="text-xs pg-tnum px-2 py-0.5 rounded-full" style={{ background: T.borderSoft, color: T.inkSoft }}>
+          {itens.length}
+        </span>
+      </div>
+      <div className="p-3 flex flex-col gap-2 max-h-[70vh] overflow-y-auto pg-scroll">
+        {itens.length === 0 ? (
+          <div className="p-6 text-center text-xs" style={{ color: T.inkFaint }}>
+            Nenhuma BM aqui no momento.
+          </div>
+        ) : (
+          children
+        )}
+      </div>
+    </div>
+  );
+
+  const Card = ({ bm, acao }) => {
+    const dias = diasDesde(bm.ultimoUsoRodizio);
+    const usos7d = usosNosUltimosDias(bm.historicoUsoRodizio, 7);
+    return (
+      <div className="p-3 rounded-xl border flex flex-col gap-2" style={{ borderColor: T.borderSoft, background: T.bg }}>
+        <div className="flex items-start justify-between gap-2">
+          <span className="text-sm font-medium leading-tight">{bm.nome}</span>
+          <QualidadeBadge qualidade={bm.qualidade || "media"} T={T} />
+        </div>
+        <div className="flex items-center gap-3 text-xs" style={{ color: T.inkFaint }}>
+          <span>{dias === null ? "Nunca usada" : `Usada há ${dias}d`}</span>
+          <span>•</span>
+          <span>{usos7d} uso(s) em 7d</span>
+        </div>
+        {acao}
+      </div>
+    );
+  };
+
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 className="pg-font-display text-xl font-semibold">Rodízio de uso</h1>
+          <p className="text-sm mt-1" style={{ color: T.inkSoft }}>
+            Prioridade calculada pela qualidade do WABA e pela frequência de uso recente — você decide quantas entram hoje.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex flex-col lg:flex-row gap-4">
+        <Coluna titulo="Disponível" cor={T.primary} itens={disponiveis}>
+          {disponiveis.map((bm) => (
+            <Card
+              key={bm.id}
+              bm={bm}
+              acao={
+                <button
+                  onClick={() => onMarcarUso(bm)}
+                  className="w-full py-1.5 rounded-lg text-xs font-medium text-white flex items-center justify-center gap-1.5"
+                  style={{ background: T.primary }}
+                >
+                  <Repeat size={13} /> Usar hoje
+                </button>
+              }
+            />
+          ))}
+        </Coluna>
+
+        <Coluna titulo="Em uso hoje" cor={T.STATUS.ativa.fg} itens={emUsoHoje}>
+          {emUsoHoje.map((bm) => (
+            <Card
+              key={bm.id}
+              bm={bm}
+              acao={
+                <button
+                  onClick={() => onDesfazerUso(bm)}
+                  className="w-full py-1.5 rounded-lg text-xs font-medium flex items-center justify-center gap-1.5"
+                  style={{ background: T.borderSoft, color: T.inkSoft }}
+                >
+                  <RotateCcw size={13} /> Desfazer
+                </button>
+              }
+            />
+          ))}
+        </Coluna>
+
+        <Coluna titulo="Em descanso" cor={T.STATUS.em_recurso.fg} itens={emDescanso}>
+          {emDescanso.map((bm) => (
+            <Card key={bm.id} bm={bm} acao={null} />
+          ))}
+        </Coluna>
       </div>
     </div>
   );
@@ -444,7 +636,7 @@ export default function PainelGestaoAtivos() {
 
   useEffect(() => {
     const unsubBMs = onSnapshot(collection(db, "bms"), (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, tags: [], ...d.data() }));
+      const data = snapshot.docs.map((d) => ({ id: d.id, tags: [], qualidade: "media", ultimoUsoRodizio: "", historicoUsoRodizio: [], ...d.data() }));
       setBms(data);
       setLoading(false);
     });
@@ -523,6 +715,28 @@ export default function PainelGestaoAtivos() {
       await deleteDoc(doc(db, "fornecedores", id));
       await registrarHistorico("Exclusão de Fornecedor", `Fornecedor "${nome}" foi deletado.`);
     }
+  };
+
+  // ---- Rodízio: marcar/desfazer uso do dia (não altera status nem outros campos da BM) ----
+  const handleMarcarUsoRodizio = async (bm) => {
+    const historicoAtual = bm.historicoUsoRodizio || [];
+    const novoHistorico = [...historicoAtual, hojeISO()].slice(-60);
+    await setDoc(
+      doc(db, "bms", bm.id),
+      { ultimoUsoRodizio: hojeISO(), historicoUsoRodizio: novoHistorico },
+      { merge: true }
+    );
+    await registrarHistorico("Rodízio", `BM "${bm.nome}" marcada como usada em ${new Date().toLocaleDateString("pt-BR")}`);
+  };
+
+  const handleDesfazerUsoRodizio = async (bm) => {
+    const novoHistorico = (bm.historicoUsoRodizio || []).filter((d) => d !== hojeISO());
+    await setDoc(
+      doc(db, "bms", bm.id),
+      { ultimoUsoRodizio: "", historicoUsoRodizio: novoHistorico },
+      { merge: true }
+    );
+    await registrarHistorico("Rodízio", `Uso de hoje desfeito para a BM "${bm.nome}"`);
   };
 
   const exportarCSV = () => {
@@ -725,6 +939,7 @@ export default function PainelGestaoAtivos() {
               { id: "financeiro", label: "Financeiro", icon: Wallet },
               { id: "fornecedores", label: "Fornecedores", icon: Building2 },
               { id: "historico", label: "Histórico", icon: History },
+              { id: "rodizio", label: "Rodízio", icon: Repeat },
             ].map((item) => {
               const Icon = item.icon;
               const active = tab === item.id;
@@ -1149,6 +1364,15 @@ export default function PainelGestaoAtivos() {
               </div>
             </div>
           </div>
+        )}
+
+        {tab === "rodizio" && (
+          <PainelRodizio
+            bms={bms}
+            T={T}
+            onMarcarUso={handleMarcarUsoRodizio}
+            onDesfazerUso={handleDesfazerUsoRodizio}
+          />
         )}
       </main>
 
