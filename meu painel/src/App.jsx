@@ -24,6 +24,8 @@ import {
   Repeat,
   RotateCcw,
   Menu,
+  Star,
+  Phone,
 } from "lucide-react";
 import {
   BarChart,
@@ -150,6 +152,14 @@ const emptyBM = () => ({
   historicoUsoRodizio: [],
 });
 
+const emptyForn = () => ({
+  id: "",
+  nome: "",
+  contato: "",
+  avaliacao: 5,
+  notas: "",
+});
+
 function dotGridStyle(T, themeMode) {
   const dot = rgba(T.border, themeMode === "dark" ? 0.9 : 1);
   return {
@@ -218,6 +228,22 @@ function QualidadeBadge({ qualidade, T }) {
         ))}
       </span>
       {cfg.label}
+    </span>
+  );
+}
+
+/* Estrelas — usado na avaliação de fornecedores */
+function StarRating({ value, T, size = 13 }) {
+  return (
+    <span className="inline-flex items-center gap-0.5">
+      {[1, 2, 3, 4, 5].map((i) => (
+        <Star
+          key={i}
+          size={size}
+          fill={i <= (value || 0) ? T.primary : "none"}
+          color={i <= (value || 0) ? T.primary : T.borderSoft}
+        />
+      ))}
     </span>
   );
 }
@@ -496,6 +522,71 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   );
 }
 
+/* ---------------- Modal do Fornecedor ---------------- */
+function FornecedorModal({ initial, T, onClose, onSave }) {
+  const [f, setF] = useState(initial || emptyForn());
+  const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    onSave(f);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" style={{ background: T.overlay }}>
+      <div
+        className="w-full max-w-md rounded-xl p-6 border flex flex-col gap-5"
+        style={{ background: T.surface, color: T.ink, borderColor: T.border }}
+      >
+        <div className="flex items-center justify-between border-b pb-3" style={{ borderColor: T.borderSoft }}>
+          <h3 className="pg-font-display text-lg font-semibold">{initial?.id ? "Editar Fornecedor" : "Novo Fornecedor"}</h3>
+          <button onClick={onClose} className="p-1 rounded-lg hover:opacity-70"><X size={20} /></button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <Field label="Nome do Fornecedor *" T={T}>
+            <input required value={f.nome} onChange={set("nome")} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} />
+          </Field>
+
+          <Field label="Contato / Link" T={T}>
+            <input value={f.contato} onChange={set("contato")} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} />
+          </Field>
+
+          <Field label="Avaliação" T={T}>
+            <div className="flex items-center gap-1.5">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <button type="button" key={i} onClick={() => setF({ ...f, avaliacao: i })}>
+                  <Star
+                    size={22}
+                    fill={i <= (f.avaliacao || 0) ? T.primary : "none"}
+                    color={i <= (f.avaliacao || 0) ? T.primary : T.borderSoft}
+                  />
+                </button>
+              ))}
+            </div>
+          </Field>
+
+          <Field label="Notas internas" T={T}>
+            <textarea
+              rows={3}
+              value={f.notas || ""}
+              onChange={set("notas")}
+              placeholder="Confiabilidade, prazos, condições combinadas..."
+              className={inputCls}
+              style={inputStyleFor(T)}
+            />
+          </Field>
+
+          <div className="flex justify-end gap-3 mt-2 border-t pt-4" style={{ borderColor: T.borderSoft }}>
+            <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: T.borderSoft, color: T.inkSoft }}>Cancelar</button>
+            <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>Salvar Fornecedor</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 /* ---------------- Rodízio: utilitários de pontuação ---------------- */
 const PESO_QUALIDADE = { alta: 3, media: 2, baixa: 1 };
 
@@ -651,6 +742,33 @@ function PainelRodizio({ bms, T, onMarcarUso, onDesfazerUso }) {
   );
 }
 
+/* ---------------- Histórico: utilitários de exibição ---------------- */
+function getHistMeta(acao, T) {
+  const map = {
+    "Criação de Ativo": { icon: Plus, color: T.STATUS.ativa.fg },
+    "Edição de Ativo": { icon: Pencil, color: "#3B82C4" },
+    "Exclusão de Ativo": { icon: Trash2, color: T.STATUS.banida.fg },
+    "Novo Fornecedor": { icon: Building2, color: T.STATUS.ativa.fg },
+    "Edição de Fornecedor": { icon: Pencil, color: "#3B82C4" },
+    "Exclusão de Fornecedor": { icon: Trash2, color: T.STATUS.banida.fg },
+    "Rodízio": { icon: Repeat, color: "#7A3FA0" },
+    "Atualização de meta": { icon: Target, color: "#B8862F" },
+  };
+  return map[acao] || { icon: History, color: T.inkSoft };
+}
+
+function dateGroupLabel(iso) {
+  const d = new Date(iso);
+  const hoje = new Date();
+  const ontem = new Date();
+  ontem.setDate(hoje.getDate() - 1);
+  const sameDay = (a, b) => a.toDateString() === b.toDateString();
+  if (sameDay(d, hoje)) return "Hoje";
+  if (sameDay(d, ontem)) return "Ontem";
+  const label = d.toLocaleDateString("pt-BR", { day: "2-digit", month: "long", year: "numeric" });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 /* ---------------- Componente Principal ---------------- */
 export default function PainelGestaoAtivos() {
   const [themeMode, setThemeMode] = useState("light");
@@ -681,8 +799,16 @@ export default function PainelGestaoAtivos() {
   const [orcamentoDraft, setOrcamentoDraft] = useState("");
   const [metaAtivosDraft, setMetaAtivosDraft] = useState("");
 
-  const [fornNome, setFornNome] = useState("");
-  const [fornContato, setFornContato] = useState("");
+  // Fornecedores
+  const [isFornModalOpen, setIsFornModalOpen] = useState(false);
+  const [editingForn, setEditingForn] = useState(null);
+  const [fornecedorSearch, setFornecedorSearch] = useState("");
+  const [fornecedorSort, setFornecedorSort] = useState("gasto");
+
+  // Histórico
+  const [historicoFiltro, setHistoricoFiltro] = useState("todos");
+  const [historicoSearch, setHistoricoSearch] = useState("");
+  const [historicoLimite, setHistoricoLimite] = useState(20);
 
   // preferências salvas localmente (por usuário/navegador)
   useEffect(() => {
@@ -732,7 +858,7 @@ export default function PainelGestaoAtivos() {
       setLoading(false);
     });
     const unsubForn = onSnapshot(collection(db, "fornecedores"), (snapshot) => {
-      setFornecedores(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setFornecedores(snapshot.docs.map((d) => ({ id: d.id, avaliacao: 5, notas: "", ...d.data() })));
     });
     const unsubHist = onSnapshot(collection(db, "historico"), (snapshot) => {
       const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
@@ -791,14 +917,21 @@ export default function PainelGestaoAtivos() {
     }
   };
 
-  const handleAddFornecedor = async (e) => {
-    e.preventDefault();
-    if (!fornNome.trim()) return;
-    const fId = uid();
-    await setDoc(doc(db, "fornecedores", fId), { id: fId, nome: fornNome, contato: fornContato });
-    await registrarHistorico("Novo Fornecedor", `Fornecedor registrado: "${fornNome}"`);
-    setFornNome("");
-    setFornContato("");
+  const handleSaveFornecedor = async (fData) => {
+    const isEdit = Boolean(fData.id);
+    const fId = fData.id || uid();
+    const payload = { ...fData, id: fId, avaliacao: Number(fData.avaliacao) || 0 };
+
+    await setDoc(doc(db, "fornecedores", fId), payload);
+    await registrarHistorico(
+      isEdit ? "Edição de Fornecedor" : "Novo Fornecedor",
+      isEdit
+        ? `Fornecedor "${fData.nome}" foi atualizado.`
+        : `Fornecedor registrado: "${fData.nome}"`
+    );
+
+    setIsFornModalOpen(false);
+    setEditingForn(null);
   };
 
   const handleDeleteFornecedor = async (id, nome) => {
@@ -934,15 +1067,35 @@ export default function PainelGestaoAtivos() {
     return fornecedores.map((f) => {
       const relTodos = bms.filter((b) => b.fornecedor === f.nome);
       const relMes = bmsDoMes.filter((b) => b.fornecedor === f.nome);
+      const ativosAgora = relTodos.filter((b) => b.status === "ativa").length;
+      const banidas = relTodos.filter((b) => b.status === "banida").length;
+      const gastoGeral = relTodos.reduce((s, b) => s + (Number(b.valor) || 0), 0);
       return {
         ...f,
         totalGeral: relTodos.length,
-        gastoGeral: relTodos.reduce((s, b) => s + (Number(b.valor) || 0), 0),
+        gastoGeral,
         totalMes: relMes.length,
         gastoMes: relMes.reduce((s, b) => s + (Number(b.valor) || 0), 0),
+        ativosAgora,
+        banidas,
+        taxaBanimento: relTodos.length > 0 ? (banidas / relTodos.length) * 100 : 0,
+        ticketMedio: relTodos.length > 0 ? gastoGeral / relTodos.length : 0,
       };
     });
   }, [fornecedores, bms, bmsDoMes]);
+
+  const fornecedoresFiltrados = useMemo(() => {
+    const list = fornecedorStats.filter((f) =>
+      (f.nome || "").toLowerCase().includes(fornecedorSearch.toLowerCase())
+    );
+    const sorters = {
+      nome: (a, b) => (a.nome || "").localeCompare(b.nome || ""),
+      gasto: (a, b) => b.gastoGeral - a.gastoGeral,
+      ativos: (a, b) => b.totalGeral - a.totalGeral,
+      avaliacao: (a, b) => (b.avaliacao || 0) - (a.avaliacao || 0),
+    };
+    return [...list].sort(sorters[fornecedorSort] || sorters.gasto);
+  }, [fornecedorStats, fornecedorSearch, fornecedorSort]);
 
   const gastoPorFornecedorChart = useMemo(
     () =>
@@ -986,6 +1139,36 @@ export default function PainelGestaoAtivos() {
     (startDate ? 1 : 0) +
     (endDate ? 1 : 0);
 
+  // ---- Histórico: tipos disponíveis, filtro/busca e agrupamento por data ----
+  const historicoTipos = useMemo(
+    () => Array.from(new Set(historico.map((h) => h.acao))).sort(),
+    [historico]
+  );
+
+  const historicoFiltrado = useMemo(() => {
+    return historico.filter((h) => {
+      const matchTipo = historicoFiltro === "todos" || h.acao === historicoFiltro;
+      const matchSearch =
+        (h.detalhes || "").toLowerCase().includes(historicoSearch.toLowerCase()) ||
+        (h.acao || "").toLowerCase().includes(historicoSearch.toLowerCase());
+      return matchTipo && matchSearch;
+    });
+  }, [historico, historicoFiltro, historicoSearch]);
+
+  const historicoAgrupado = useMemo(() => {
+    const ordem = [];
+    const map = {};
+    historicoFiltrado.slice(0, historicoLimite).forEach((h) => {
+      const label = h.timestamp ? dateGroupLabel(h.timestamp) : "Sem data";
+      if (!map[label]) {
+        map[label] = [];
+        ordem.push(label);
+      }
+      map[label].push(h);
+    });
+    return ordem.map((label) => ({ label, itens: map[label] }));
+  }, [historicoFiltrado, historicoLimite]);
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center gap-2" style={{ background: T.bg, color: T.ink }}>
@@ -1016,7 +1199,7 @@ export default function PainelGestaoAtivos() {
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
     { id: "financeiro", label: "Financeiro", icon: Wallet },
-    { id: "fornecedores", label: "Fornecedores", icon: Building2 },
+    { id: "fornecedores", label: "Fornecedores", icon: Building2, count: fornecedores.length },
     { id: "historico", label: "Histórico", icon: History },
   ];
   const paginaAtual = NAV_ITEMS.find((n) => n.id === tab)?.label || "";
@@ -1448,62 +1631,183 @@ export default function PainelGestaoAtivos() {
         )}
 
         {tab === "fornecedores" && (
-          <div className="flex flex-col gap-6">
-            <form onSubmit={handleAddFornecedor} className="p-6 rounded-xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex-1 w-full"><Field label="Nome do Fornecedor *" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>Cadastrar</button>
-            </form>
-
-            <div className="rounded-xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                    <th className="p-4">Nome</th>
-                    <th className="p-4">Contato</th>
-                    <th className="p-4 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
-                  {fornecedores.map((f) => (
-                    <tr key={f.id}>
-                      <td className="p-4 font-medium">{f.nome}</td>
-                      <td className="p-4" style={{ color: T.inkSoft }}>{f.contato || "—"}</td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => handleDeleteFornecedor(f.id, f.nome)} className="p-1 text-red-500 hover:opacity-70"><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <div className="flex flex-col gap-5">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h1 className="pg-font-display text-2xl font-bold tracking-tight">Fornecedores</h1>
+                <p className="text-sm mt-1" style={{ color: T.inkSoft }}>
+                  {fornecedores.length} fornecedor(es) cadastrado(s)
+                </p>
+              </div>
+              <button
+                onClick={() => { setEditingForn(null); setIsFornModalOpen(true); }}
+                className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 transition-shadow hover:shadow-lg"
+                style={{ background: T.primary }}
+              >
+                <Plus size={16} /> Novo Fornecedor
+              </button>
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border, background: T.surface }}>
+                <Search size={16} style={{ color: T.inkFaint }} />
+                <input
+                  value={fornecedorSearch}
+                  onChange={(e) => setFornecedorSearch(e.target.value)}
+                  placeholder="Buscar fornecedor..."
+                  className="w-full bg-transparent text-sm outline-none"
+                  style={{ color: T.ink }}
+                />
+              </div>
+              <select value={fornecedorSort} onChange={(e) => setFornecedorSort(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
+                <option value="gasto">Ordenar: Maior gasto</option>
+                <option value="ativos">Ordenar: Mais ativos fornecidos</option>
+                <option value="avaliacao">Ordenar: Melhor avaliação</option>
+                <option value="nome">Ordenar: Nome (A-Z)</option>
+              </select>
+            </div>
+
+            {fornecedoresFiltrados.length === 0 ? (
+              <div className="rounded-xl border p-10 text-center text-sm" style={{ borderColor: T.borderSoft, color: T.inkFaint, background: T.surface }}>
+                {fornecedores.length === 0 ? "Nenhum fornecedor cadastrado ainda." : "Nenhum fornecedor encontrado com essa busca."}
+              </div>
+            ) : (
+              <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                {fornecedoresFiltrados.map((f) => (
+                  <div key={f.id} className="rounded-xl border p-5 flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <div className="font-semibold text-sm truncate pg-font-display">{f.nome}</div>
+                        {f.contato && (
+                          <div className="text-xs mt-0.5 truncate flex items-center gap-1" style={{ color: T.inkSoft }}>
+                            <Phone size={11} /> {f.contato}
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <button onClick={() => { setEditingForn(f); setIsFornModalOpen(true); }} className="p-1.5 rounded" style={{ color: T.primary }}>
+                          <Pencil size={14} />
+                        </button>
+                        <button onClick={() => handleDeleteFornecedor(f.id, f.nome)} className="p-1.5 rounded text-red-500">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+
+                    <StarRating value={f.avaliacao} T={T} />
+
+                    <div className="grid grid-cols-2 gap-3 pt-3 border-t" style={{ borderColor: T.borderSoft }}>
+                      <div>
+                        <div className="text-[11px]" style={{ color: T.inkFaint }}>Ativos fornecidos</div>
+                        <div className="pg-mono text-base font-semibold">{f.totalGeral}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px]" style={{ color: T.inkFaint }}>Ativos agora</div>
+                        <div className="pg-mono text-base font-semibold" style={{ color: T.STATUS.ativa.fg }}>{f.ativosAgora}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px]" style={{ color: T.inkFaint }}>Gasto total</div>
+                        <div className="pg-mono text-base font-semibold">{brl(f.gastoGeral)}</div>
+                      </div>
+                      <div>
+                        <div className="text-[11px]" style={{ color: T.inkFaint }}>Taxa de banimento</div>
+                        <div className="pg-mono text-base font-semibold" style={{ color: f.taxaBanimento > 30 ? "#A3402B" : T.inkSoft }}>
+                          {f.taxaBanimento.toFixed(0)}%
+                        </div>
+                      </div>
+                    </div>
+
+                    {f.notas && (
+                      <div className="text-xs pt-3 border-t leading-relaxed" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
+                        {f.notas}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
         {tab === "historico" && (
           <div className="flex flex-col gap-4">
-            <div className="rounded-xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="p-4 border-b font-medium text-sm" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                Atividades e Alterações Registradas
-              </div>
-              <div className="divide-y" style={{ borderColor: T.borderSoft }}>
-                {historico.length === 0 ? (
-                  <div className="p-8 text-center text-sm" style={{ color: T.inkFaint }}>Nenhum evento gravado até o momento.</div>
-                ) : (
-                  historico.map((h) => (
-                    <div key={h.id} className="p-4 flex flex-col sm:flex-row justify-between sm:items-center gap-1 text-sm">
-                      <div>
-                        <span className="font-semibold mr-2" style={{ color: T.primary }}>[{h.acao}]</span>
-                        <span style={{ color: T.ink }}>{h.detalhes}</span>
-                      </div>
-                      <span className="text-xs pg-tnum" style={{ color: T.inkFaint }}>
-                        {h.timestamp ? new Date(h.timestamp).toLocaleString("pt-BR") : "—"}
-                      </span>
-                    </div>
-                  ))
-                )}
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h1 className="pg-font-display text-2xl font-bold tracking-tight">Histórico</h1>
+                <p className="text-sm mt-1" style={{ color: T.inkSoft }}>{historico.length} evento(s) registrados</p>
               </div>
             </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border, background: T.surface }}>
+                <Search size={16} style={{ color: T.inkFaint }} />
+                <input
+                  value={historicoSearch}
+                  onChange={(e) => setHistoricoSearch(e.target.value)}
+                  placeholder="Buscar no histórico..."
+                  className="w-full bg-transparent text-sm outline-none"
+                  style={{ color: T.ink }}
+                />
+              </div>
+              <select value={historicoFiltro} onChange={(e) => setHistoricoFiltro(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
+                <option value="todos">Todos os tipos</option>
+                {historicoTipos.map((t) => (
+                  <option key={t} value={t}>{t}</option>
+                ))}
+              </select>
+            </div>
+
+            {historicoAgrupado.length === 0 ? (
+              <div className="rounded-xl border p-10 text-center text-sm" style={{ borderColor: T.borderSoft, color: T.inkFaint, background: T.surface }}>
+                Nenhum evento encontrado.
+              </div>
+            ) : (
+              <div className="flex flex-col gap-6">
+                {historicoAgrupado.map((grupo) => (
+                  <div key={grupo.label}>
+                    <div className="text-xs font-semibold mb-2 pg-font-body" style={{ color: T.inkFaint }}>{grupo.label}</div>
+                    <div className="rounded-xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
+                      {grupo.itens.map((h, idx) => {
+                        const meta = getHistMeta(h.acao, T);
+                        const Icon = meta.icon;
+                        return (
+                          <div
+                            key={h.id}
+                            className="p-4 flex items-start gap-3"
+                            style={{ borderTop: idx > 0 ? `1px solid ${T.borderSoft}` : "none" }}
+                          >
+                            <div
+                              className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
+                              style={{ background: rgba(meta.color, 0.14), color: meta.color }}
+                            >
+                              <Icon size={15} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="text-sm font-medium" style={{ color: meta.color }}>{h.acao}</div>
+                              <div className="text-sm mt-0.5" style={{ color: T.ink }}>{h.detalhes}</div>
+                            </div>
+                            <span className="text-xs pg-tnum shrink-0" style={{ color: T.inkFaint }}>
+                              {h.timestamp
+                                ? new Date(h.timestamp).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                                : "—"}
+                            </span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+                {historicoFiltrado.length > historicoLimite && (
+                  <button
+                    onClick={() => setHistoricoLimite((l) => l + 30)}
+                    className="self-center px-4 py-2 rounded-lg text-sm font-medium border"
+                    style={{ borderColor: T.border, color: T.inkSoft }}
+                  >
+                    Carregar mais
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -1525,6 +1829,15 @@ export default function PainelGestaoAtivos() {
           T={T}
           onClose={() => { setIsModalOpen(false); setEditingBm(null); }}
           onSave={handleSaveBM}
+        />
+      )}
+
+      {isFornModalOpen && (
+        <FornecedorModal
+          initial={editingForn}
+          T={T}
+          onClose={() => { setIsFornModalOpen(false); setEditingForn(null); }}
+          onSave={handleSaveFornecedor}
         />
       )}
     </div>
