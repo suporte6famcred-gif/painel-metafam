@@ -150,6 +150,15 @@ const emptyBM = () => ({
   historicoUsoRodizio: [],
 });
 
+function dotGridStyle(T, themeMode) {
+  const dot = rgba(T.border, themeMode === "dark" ? 0.9 : 1);
+  return {
+    backgroundImage: `radial-gradient(${dot} 1px, transparent 1px)`,
+    backgroundSize: "22px 22px",
+    backgroundPosition: "-11px -11px",
+  };
+}
+
 function FontStyles() {
   return (
     <style>{`
@@ -210,6 +219,26 @@ function QualidadeBadge({ qualidade, T }) {
       </span>
       {cfg.label}
     </span>
+  );
+}
+
+/* Bloco hero — preenchimento sólido, o elemento com mais peso visual da tela */
+function HeroStat({ label, value, sub, T }) {
+  return (
+    <div
+      className="rounded-xl p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4"
+      style={{ background: T.primary, backgroundImage: `linear-gradient(135deg, ${T.primary}, ${rgba(T.primary, 0.72)})` }}
+    >
+      <div>
+        <div className="text-sm mb-1.5" style={{ color: "rgba(255,255,255,0.82)" }}>{label}</div>
+        <div className="pg-font-display pg-mono text-5xl font-bold tracking-tight text-white">{value}</div>
+      </div>
+      {sub && (
+        <div className="text-sm text-right leading-snug" style={{ color: "rgba(255,255,255,0.85)" }}>
+          {sub}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -459,7 +488,7 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
 
           <div className="flex justify-end gap-3 mt-3 border-t pt-4" style={{ borderColor: T.borderSoft }}>
             <button type="button" onClick={onClose} className="px-4 py-2 rounded-lg text-sm font-medium" style={{ background: T.borderSoft, color: T.inkSoft }}>Cancelar</button>
-            <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Salvar Ativo</button>
+            <button type="submit" className="px-5 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>Salvar Ativo</button>
           </div>
         </form>
       </div>
@@ -568,7 +597,7 @@ function PainelRodizio({ bms, T, onMarcarUso, onDesfazerUso }) {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="pg-font-display text-xl font-semibold">Rodízio de uso</h1>
+          <h1 className="pg-font-display text-2xl font-bold tracking-tight">Rodízio de uso</h1>
           <p className="text-sm mt-1" style={{ color: T.inkSoft }}>
             Prioridade calculada pela qualidade do WABA e pela frequência de uso recente — você decide quantas entram hoje.
           </p>
@@ -1000,23 +1029,22 @@ export default function PainelGestaoAtivos() {
         onClick={onClick}
         className="w-full flex items-center gap-3 pl-3 pr-2.5 py-2 text-sm rounded-lg shrink-0"
         style={{
-          background: active ? T.primarySoft : "transparent",
-          color: active ? T.primary : T.inkSoft,
+          background: active ? T.primary : "transparent",
+          color: active ? "#fff" : T.inkSoft,
           fontWeight: active ? 600 : 500,
-          borderLeft: active ? `2px solid ${T.primary}` : "2px solid transparent",
         }}
       >
         <Icon size={17} />
         <span className="flex-1 text-left">{item.label}</span>
         {typeof item.count === "number" && (
-          <span className="pg-mono text-xs" style={{ color: active ? T.primary : T.inkFaint }}>{item.count}</span>
+          <span className="pg-mono text-xs" style={{ color: active ? "rgba(255,255,255,0.85)" : T.inkFaint }}>{item.count}</span>
         )}
       </button>
     );
   };
 
   return (
-    <div className="min-h-screen flex" style={{ background: T.bg, color: T.ink }}>
+    <div className="min-h-screen flex" style={{ background: T.bg, color: T.ink, ...dotGridStyle(T, themeMode) }}>
       <FontStyles />
 
       {/* Sidebar (desktop) */}
@@ -1024,12 +1052,12 @@ export default function PainelGestaoAtivos() {
         className="hidden md:flex flex-col w-60 shrink-0 border-r h-screen sticky top-0"
         style={{ background: T.rail, borderColor: T.borderSoft }}
       >
-        <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0" style={{ borderColor: T.borderSoft }}>
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: T.primary }}>
+        <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0" style={{ borderColor: T.borderSoft, background: T.surfaceAlt }}>
+          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: T.primary, boxShadow: `0 0 0 3px ${rgba(T.primary, 0.18)}` }}>
             <ShieldCheck size={17} />
           </div>
           <div className="leading-tight">
-            <div className="pg-font-display font-bold text-sm">WA Base</div>
+            <div className="pg-font-display font-bold text-sm tracking-tight">WA Base</div>
             <div className="text-[11px]" style={{ color: T.inkFaint }}>by alvr</div>
           </div>
         </div>
@@ -1095,7 +1123,7 @@ export default function PainelGestaoAtivos() {
           </div>
           <button
             onClick={() => { setEditingBm(null); setIsModalOpen(true); }}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0"
+            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0 transition-shadow hover:shadow-lg"
             style={{ background: T.primary }}
           >
             <Plus size={18} /> <span className="hidden sm:inline">Novo Ativo</span>
@@ -1115,16 +1143,29 @@ export default function PainelGestaoAtivos() {
         {tab === "dashboard" && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <h1 className="pg-font-display text-xl font-semibold">Visão geral</h1>
+              <h1 className="pg-font-display text-2xl font-bold tracking-tight">Visão geral</h1>
               <MesSelector />
             </div>
+
+            <HeroStat
+              T={T}
+              label="BMs ativas agora"
+              value={stats.ativas}
+              sub={
+                <>
+                  {stats.taxaAtivas}% de operação
+                  <br />
+                  {stats.totalBMs} ativos no total
+                </>
+              }
+            />
 
             <StatStrip
               T={T}
               items={[
                 { label: "Total BMs/Ativos", value: stats.totalBMs },
                 { label: "Gasto no período", value: brl(gastoMes), color: T.STATUS.em_recurso.fg },
-                { label: "BMs ativas agora", value: stats.ativas, color: T.STATUS.ativa.fg },
+                { label: "Em estoque", value: stats.estoque, color: T.STATUS.estoque.fg },
                 { label: "Taxa de operação", value: `${stats.taxaAtivas}%` },
               ]}
             />
@@ -1165,7 +1206,7 @@ export default function PainelGestaoAtivos() {
                     <input type="number" value={metaAtivosDraft} onChange={(e) => setMetaAtivosDraft(e.target.value)} className={inputCls} style={inputStyleFor(T)} placeholder="0" />
                   </Field>
                 </div>
-                <button onClick={salvarMeta} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>
+                <button onClick={salvarMeta} className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
                   Salvar metas do mês
                 </button>
               </div>
@@ -1334,7 +1375,7 @@ export default function PainelGestaoAtivos() {
         {tab === "financeiro" && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
-              <h1 className="pg-font-display text-xl font-semibold">Financeiro</h1>
+              <h1 className="pg-font-display text-2xl font-bold tracking-tight">Financeiro</h1>
               <MesSelector />
             </div>
 
@@ -1411,7 +1452,7 @@ export default function PainelGestaoAtivos() {
             <form onSubmit={handleAddFornecedor} className="p-6 rounded-xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
               <div className="flex-1 w-full"><Field label="Nome do Fornecedor *" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
               <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Cadastrar</button>
+              <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>Cadastrar</button>
             </form>
 
             <div className="rounded-xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
