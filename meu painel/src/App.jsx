@@ -23,6 +23,7 @@ import {
   Check,
   Repeat,
   Menu,
+  MessageSquare,
 } from "lucide-react";
 import {
   BarChart,
@@ -36,6 +37,7 @@ import {
   CartesianGrid,
 } from "recharts";
 import { db } from "./firebase";
+import PainelModelos from "./PainelModelos";
 import {
   collection,
   onSnapshot,
@@ -1016,6 +1018,7 @@ export default function PainelGestaoAtivos() {
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
+    { id: "modelos", label: "Modelos de mensagem", icon: MessageSquare },
     { id: "financeiro", label: "Financeiro", icon: Wallet },
     { id: "fornecedores", label: "Fornecedores", icon: Building2 },
     { id: "historico", label: "Histórico", icon: History },
@@ -1513,6 +1516,15 @@ export default function PainelGestaoAtivos() {
             bms={bms}
             T={T}
             onMoverColuna={handleMoverColunaRodizio}
+          />
+        )}
+
+        {tab === "modelos" && (
+          <PainelModelos
+            bms={bms}
+            T={T}
+            themeMode={themeMode}
+            registrarHistorico={registrarHistorico}
           />
         )}
         </main>
