@@ -45,7 +45,6 @@ import {
   brl,
   monthLabel,
   hojeYYYYMM,
-  hojeISO,
   uid,
 } from "./painelShared";
 import {
@@ -56,6 +55,9 @@ import {
   deleteDoc,
   addDoc,
 } from "firebase/firestore";
+
+/* ---------------- Utilitários Locais de Data ---------------- */
+const hojeISO = () => new Date().toISOString().split("T")[0];
 
 /* ---------------- Rodízio: utilitários de pontuação ---------------- */
 const PESO_QUALIDADE = { alta: 3, media: 2, baixa: 1 };
@@ -259,7 +261,7 @@ export default function PainelGestaoAtivos() {
   const [editingBm, setEditingBm] = useState(null);
 
   // Mês em foco (Dashboard + Financeiro)
-  const [mesSelecionado, setMesSelecionado] = useState(hojeYYYYMM());
+  const [mesSelecionado, setMesSelecionado] = useState(hojeYYYYMM ? hojeYYYYMM() : "2026-09");
   const [orcamentoDraft, setOrcamentoDraft] = useState("");
   const [metaAtivosDraft, setMetaAtivosDraft] = useState("");
 
@@ -360,13 +362,13 @@ export default function PainelGestaoAtivos() {
     });
     await registrarHistorico(
       "Atualização de meta",
-      `Meta de ${monthLabel(mesSelecionado)}: orçamento ${brl(orcamentoDraft)}, meta de ativos ${metaAtivosDraft || 0}`
+      `Meta de ${monthLabel ? monthLabel(mesSelecionado) : mesSelecionado}: orçamento ${brl ? brl(orcamentoDraft) : orcamentoDraft}, meta de ativos ${metaAtivosDraft || 0}`
     );
   };
 
   const handleSaveBM = async (bmData) => {
     const isEdit = Boolean(bmData.id);
-    const bmId = bmData.id || uid();
+    const bmId = bmData.id || (uid ? uid() : Date.now().toString());
     const payload = { ...bmData, id: bmId, tags: bmData.tags || [] };
 
     await setDoc(doc(db, "bms", bmId), payload);
@@ -389,7 +391,7 @@ export default function PainelGestaoAtivos() {
   const handleAddFornecedor = async (e) => {
     e.preventDefault();
     if (!fornNome.trim()) return;
-    const fId = uid();
+    const fId = uid ? uid() : Date.now().toString();
     await setDoc(doc(db, "fornecedores", fId), { id: fId, nome: fornNome, contato: fornContato });
     await registrarHistorico("Novo Fornecedor", `Fornecedor registrado: "${fornNome}"`);
     setFornNome("");
@@ -416,7 +418,8 @@ export default function PainelGestaoAtivos() {
   };
 
   const mesesDisponiveis = useMemo(() => {
-    const s = new Set([hojeYYYYMM()]);
+    const defaultMonth = hojeYYYYMM ? hojeYYYYMM() : "2026-09";
+    const s = new Set([defaultMonth]);
     bms.forEach((b) => b.dataCompra && s.add(b.dataCompra.slice(0, 7)));
     return Array.from(s).sort().reverse();
   }, [bms]);
@@ -474,7 +477,7 @@ export default function PainelGestaoAtivos() {
     return Object.entries(map)
       .sort(([a], [b]) => (a > b ? 1 : -1))
       .slice(-6)
-      .map(([m, valor]) => ({ mes: monthLabel(m).split("/")[0].slice(0, 3), valor }));
+      .map(([m, valor]) => ({ mes: monthLabel ? monthLabel(m).split("/")[0].slice(0, 3) : m, valor }));
   }, [bms]);
 
   const fornecedorStats = useMemo(() => {
@@ -520,7 +523,7 @@ export default function PainelGestaoAtivos() {
       <option value="todos">Todos os períodos</option>
       {mesesDisponiveis.map((m) => (
         <option key={m} value={m}>
-          {monthLabel(m)}
+          {monthLabel ? monthLabel(m) : m}
         </option>
       ))}
     </select>
@@ -669,7 +672,7 @@ export default function PainelGestaoAtivos() {
                 T={T}
                 items={[
                   { label: "Total BMs/Ativos", value: stats.totalBMs },
-                  { label: "Gasto no período", value: brl(gastoMes), color: T.STATUS?.em_recurso?.fg },
+                  { label: "Gasto no período", value: brl ? brl(gastoMes) : gastoMes, color: T.STATUS?.em_recurso?.fg },
                   { label: "Em estoque", value: stats.estoque, color: T.STATUS?.estoque?.fg },
                   { label: "Taxa de operação", value: `${stats.taxaAtivas}%` },
                 ]}
@@ -679,11 +682,11 @@ export default function PainelGestaoAtivos() {
                 <div>
                   <div className="flex items-center gap-2 mb-3">
                     <Wallet size={16} color={T.primary} />
-                    <span className="pg-font-display font-semibold text-sm">Orçamento — {monthLabel(mesSelecionado)}</span>
+                    <span className="pg-font-display font-semibold text-sm">Orçamento — {monthLabel ? monthLabel(mesSelecionado) : mesSelecionado}</span>
                   </div>
                   <div className="flex items-end justify-between mb-2">
-                    <span className="pg-tnum text-lg font-semibold">{brl(gastoMes)}</span>
-                    <span className="text-xs" style={{ color: T.inkFaint }}>de {brl(metaAtual.orcamento || 0)}</span>
+                    <span className="pg-tnum text-lg font-semibold">{brl ? brl(gastoMes) : gastoMes}</span>
+                    <span className="text-xs" style={{ color: T.inkFaint }}>de {brl ? brl(metaAtual.orcamento || 0) : metaAtual.orcamento}</span>
                   </div>
                   <ProgressBar value={gastoMes} max={Number(metaAtual.orcamento) || 0} T={T} color={T.primary} />
                 </div>
@@ -702,7 +705,7 @@ export default function PainelGestaoAtivos() {
                 <div className="md:col-span-2 pt-4 border-t flex flex-wrap items-end gap-3" style={{ borderColor: T.borderSoft }}>
                   <div className="flex-1 min-w-[160px]">
                     <label className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>
-                      Orçamento de {monthLabel(mesSelecionado)} (R$)
+                      Orçamento de {monthLabel ? monthLabel(mesSelecionado) : mesSelecionado} (R$)
                     </label>
                     <input
                       type="number"
@@ -756,7 +759,7 @@ export default function PainelGestaoAtivos() {
                         <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
                         <XAxis dataKey="mes" stroke={T.inkSoft} fontSize={12} />
                         <YAxis stroke={T.inkSoft} fontSize={12} tickFormatter={(v) => `R$${v}`} />
-                        <Tooltip formatter={(v) => brl(v)} contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
+                        <Tooltip formatter={(v) => brl ? brl(v) : v} contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
                         <Line type="monotone" dataKey="valor" stroke={T.primary} strokeWidth={2.5} dot={{ r: 3 }} />
                       </LineChart>
                     </ResponsiveContainer>
@@ -766,7 +769,6 @@ export default function PainelGestaoAtivos() {
             </div>
           )}
 
-          {/* NOVO PAINEL DE ATIVOS (Importado do PainelAtivos.jsx fornecido pelo Claude) */}
           {tab === "bms" && (
             <PainelAtivos
               bms={bms}
@@ -804,11 +806,11 @@ export default function PainelGestaoAtivos() {
               <StatStrip
                 T={T}
                 items={[
-                  { label: "Orçamento do período", value: brl(metaAtual.orcamento || 0) },
-                  { label: "Gasto no período", value: brl(gastoMes), color: T.primary },
+                  { label: "Orçamento do período", value: brl ? brl(metaAtual.orcamento || 0) : metaAtual.orcamento },
+                  { label: "Gasto no período", value: brl ? brl(gastoMes) : gastoMes, color: T.primary },
                   {
                     label: "Saldo restante",
-                    value: brl((Number(metaAtual.orcamento) || 0) - gastoMes),
+                    value: brl ? brl((Number(metaAtual.orcamento) || 0) - gastoMes) : (Number(metaAtual.orcamento) || 0) - gastoMes,
                     color: (Number(metaAtual.orcamento) || 0) - gastoMes < 0 ? "#A3402B" : T.STATUS?.ativa?.fg,
                   },
                   { label: "Ativos no período", value: bmsDoMes.length },
@@ -816,14 +818,14 @@ export default function PainelGestaoAtivos() {
               />
 
               <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="pg-font-display font-semibold text-sm">Gasto por fornecedor — {monthLabel(mesSelecionado)}</span>
+                <span className="pg-font-display font-semibold text-sm">Gasto por fornecedor — {monthLabel ? monthLabel(mesSelecionado) : mesSelecionado}</span>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={gastoPorFornecedorChart}>
                       <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
                       <XAxis dataKey="name" stroke={T.inkSoft} fontSize={11} />
                       <YAxis stroke={T.inkSoft} fontSize={11} tickFormatter={(v) => `R$${v}`} />
-                      <Tooltip formatter={(v) => brl(v)} contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
+                      <Tooltip formatter={(v) => brl ? brl(v) : v} contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
                       <Bar dataKey="valor" fill={T.primary} radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
