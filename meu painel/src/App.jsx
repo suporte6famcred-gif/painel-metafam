@@ -24,6 +24,9 @@ import {
   Repeat,
   Menu,
   MessageSquare,
+  Package,
+  TrendingUp,
+  PieChart as PieChartIcon,
 } from "lucide-react";
 import {
   BarChart,
@@ -232,7 +235,7 @@ function QualidadeBadge({ qualidade, T }) {
 function HeroStat({ label, value, sub, T }) {
   return (
     <div
-      className="rounded-xl p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4"
+      className="pa-fade rounded-xl p-7 flex flex-col sm:flex-row sm:items-end justify-between gap-4"
       style={{ background: T.primary, backgroundImage: `linear-gradient(135deg, ${T.primary}, ${rgba(T.primary, 0.72)})` }}
     >
       <div>
@@ -251,15 +254,22 @@ function HeroStat({ label, value, sub, T }) {
 /* Fita de indicadores — números sempre em mono, separados por traço fino (não cards repetidos) */
 function StatStrip({ items, T }) {
   return (
-    <div className="rounded-xl border flex flex-wrap overflow-hidden" style={{ borderColor: T.borderSoft, background: T.surface }}>
+    <div className="pa-fade rounded-xl border flex flex-wrap overflow-hidden" style={{ borderColor: T.borderSoft, background: T.surface, animationDelay: "60ms" }}>
       {items.map((it, i) => (
         <div
           key={it.label}
-          className="flex-1 min-w-[150px] p-5"
+          className="flex-1 min-w-[150px] p-5 flex items-start justify-between gap-3"
           style={{ borderRight: i < items.length - 1 ? `1px solid ${T.borderSoft}` : "none" }}
         >
-          <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>{it.label}</div>
-          <div className="pg-mono text-2xl font-semibold" style={{ color: it.color || T.ink }}>{it.value}</div>
+          <div>
+            <div className="text-xs mb-1.5" style={{ color: T.inkSoft }}>{it.label}</div>
+            <div className="pg-mono text-2xl font-semibold" style={{ color: it.color || T.ink }}>{it.value}</div>
+          </div>
+          {it.icon && (
+            <span className="p-2 rounded-lg shrink-0" style={{ background: (it.color || T.primary) + "1A", color: it.color || T.primary }}>
+              <it.icon size={15} />
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -303,7 +313,7 @@ function ProgressBar({ value, max, T, color }) {
   return (
     <div className="w-full h-2 rounded-full overflow-hidden" style={{ background: T.borderSoft }}>
       <div
-        className="h-full rounded-full transition-all"
+        className="pa-bar h-full rounded-full"
         style={{ width: `${pct}%`, background: over ? "#A3402B" : color }}
       />
     </div>
@@ -987,7 +997,7 @@ export default function PainelGestaoAtivos() {
 
         {tab === "dashboard" && (
           <div className="flex flex-col gap-6">
-            <div className="flex items-center justify-between flex-wrap gap-3">
+            <div className="pa-fade flex items-center justify-between flex-wrap gap-3">
               <h1 className="pg-font-display text-2xl font-bold tracking-tight">Visão geral</h1>
               <MesSelector />
             </div>
@@ -1008,19 +1018,26 @@ export default function PainelGestaoAtivos() {
             <StatStrip
               T={T}
               items={[
-                { label: "Total BMs/Ativos", value: stats.totalBMs },
-                { label: "Gasto no período", value: brl(gastoMes), color: T.STATUS.em_recurso.fg },
-                { label: "Em estoque", value: stats.estoque, color: T.STATUS.estoque.fg },
-                { label: "Taxa de operação", value: `${stats.taxaAtivas}%` },
+                { label: "Total BMs/Ativos", value: stats.totalBMs, icon: Boxes },
+                { label: "Gasto no período", value: brl(gastoMes), color: T.STATUS.em_recurso.fg, icon: Wallet },
+                { label: "Em estoque", value: stats.estoque, color: T.STATUS.estoque.fg, icon: Package },
+                { label: "Taxa de operação", value: `${stats.taxaAtivas}%`, icon: TrendingUp },
               ]}
             />
 
             {/* Metas do mês */}
-            <div className="rounded-xl p-6 border grid md:grid-cols-2 gap-6" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <div className="pa-fade rounded-xl p-6 border grid md:grid-cols-2 gap-6" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "110ms" }}>
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Wallet size={16} color={T.primary} />
-                  <span className="pg-font-display font-semibold text-sm">Orçamento — {monthLabel(mesSelecionado)}</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                      <Wallet size={14} />
+                    </span>
+                    <span className="pg-font-display font-semibold text-sm">Orçamento — {monthLabel(mesSelecionado)}</span>
+                  </div>
+                  <span className="pg-mono text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                    {metaAtual.orcamento > 0 ? `${Math.min(100, Math.round((gastoMes / metaAtual.orcamento) * 100))}%` : "—"}
+                  </span>
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className="pg-tnum text-lg font-semibold">{brl(gastoMes)}</span>
@@ -1029,9 +1046,16 @@ export default function PainelGestaoAtivos() {
                 <ProgressBar value={gastoMes} max={Number(metaAtual.orcamento) || 0} T={T} color={T.primary} />
               </div>
               <div>
-                <div className="flex items-center gap-2 mb-3">
-                  <Target size={16} color={T.primary} />
-                  <span className="pg-font-display font-semibold text-sm">Meta de ativos conectados simultaneamente</span>
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <span className="p-1.5 rounded-lg" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                      <Target size={14} />
+                    </span>
+                    <span className="pg-font-display font-semibold text-sm">Meta de ativos conectados simultaneamente</span>
+                  </div>
+                  <span className="pg-mono text-xs font-medium px-2 py-0.5 rounded-full" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                    {metaAtual.metaAtivos > 0 ? `${Math.min(100, Math.round((stats.ativas / metaAtual.metaAtivos) * 100))}%` : "—"}
+                  </span>
                 </div>
                 <div className="flex items-end justify-between mb-2">
                   <span className="pg-tnum text-lg font-semibold">{stats.ativas}</span>
@@ -1051,30 +1075,40 @@ export default function PainelGestaoAtivos() {
                     <input type="number" value={metaAtivosDraft} onChange={(e) => setMetaAtivosDraft(e.target.value)} className={inputCls} style={inputStyleFor(T)} placeholder="0" />
                   </Field>
                 </div>
-                <button onClick={salvarMeta} className="px-4 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
+                <button onClick={salvarMeta} className="pa-chip px-4 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
                   Salvar metas do mês
                 </button>
               </div>
             </div>
 
             <div className="grid lg:grid-cols-2 gap-6">
-              <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="pg-font-display font-semibold text-sm">Distribuição por Status</span>
+              <div className="pa-fade pa-lift rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "160ms" }}>
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                    <PieChartIcon size={14} />
+                  </span>
+                  <span className="pg-font-display font-semibold text-sm">Distribuição por Status</span>
+                </div>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={chartData}>
                       <CartesianGrid strokeDasharray="3 3" stroke={T.border} />
                       <XAxis dataKey="name" stroke={T.inkSoft} fontSize={12} />
                       <YAxis stroke={T.inkSoft} fontSize={12} allowDecimals={false} />
-                      <Tooltip contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
+                      <Tooltip contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} cursor={{ fill: rgba(T.primary, 0.06) }} />
                       <Bar dataKey="qtd" fill={T.primary} radius={[6, 6, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
               </div>
 
-              <div className="rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-                <span className="pg-font-display font-semibold text-sm">Tendência de gasto (últimos meses)</span>
+              <div className="pa-fade pa-lift rounded-xl p-6 border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "200ms" }}>
+                <div className="flex items-center gap-2">
+                  <span className="p-1.5 rounded-lg" style={{ background: rgba(T.primary, 0.12), color: T.primary }}>
+                    <TrendingUp size={14} />
+                  </span>
+                  <span className="pg-font-display font-semibold text-sm">Tendência de gasto (últimos meses)</span>
+                </div>
                 <div className="h-64">
                   {tendenciaMensal.length === 0 ? (
                     <div className="h-full flex items-center justify-center text-sm" style={{ color: T.inkFaint }}>
@@ -1087,7 +1121,7 @@ export default function PainelGestaoAtivos() {
                         <XAxis dataKey="mes" stroke={T.inkSoft} fontSize={12} />
                         <YAxis stroke={T.inkSoft} fontSize={12} tickFormatter={(v) => `R$${v}`} />
                         <Tooltip formatter={(v) => brl(v)} contentStyle={{ background: T.surface, borderColor: T.border, color: T.ink }} />
-                        <Line type="monotone" dataKey="valor" stroke={T.primary} strokeWidth={2.5} dot={{ r: 3 }} />
+                        <Line type="monotone" dataKey="valor" stroke={T.primary} strokeWidth={2.5} dot={{ r: 3 }} activeDot={{ r: 5 }} />
                       </LineChart>
                     </ResponsiveContainer>
                   )}
