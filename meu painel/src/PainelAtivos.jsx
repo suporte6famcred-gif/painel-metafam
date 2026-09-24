@@ -393,23 +393,25 @@ export default function PainelAtivos({ bms, T, onEdit, onDelete, registrarHistor
               <Eye size={16} /> Colunas <span className="pg-mono text-[11px]" style={{ color: T.inkFaint }}>{cols.length}/{COLS.length}</span>
             </button>
           )}>
-            <div className="p-2">
-              <div className="flex items-center justify-between px-2 py-1.5 text-xs" style={{ color: T.inkSoft }}>
-                <span className="font-semibold">Tópicos em amostragem</span>
+            <div className="flex flex-col" style={{ maxHeight: "min(420px, 70vh)" }}>
+              <div className="flex items-center justify-between px-3 py-2.5 border-b text-xs shrink-0 sticky top-0 z-10" style={{ color: T.inkSoft, borderColor: T.borderSoft, background: T.surface }}>
+                <span className="font-semibold">Colunas visíveis</span>
                 <span className="flex gap-2">
                   <button onClick={() => setVisible(COLS.map((c) => c.id))} className="underline" style={{ color: T.primary }}>Todas</button>
                   <button onClick={() => setVisible(COLS_PADRAO)} className="underline" style={{ color: T.primary }}>Padrão</button>
                 </span>
               </div>
-              {COLS.map((c) => {
-                const on = c.fixed || visible.includes(c.id);
-                return (
-                  <label key={c.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors" style={{ cursor: c.fixed ? "not-allowed" : "pointer", opacity: c.fixed ? 0.55 : 1, background: on ? T.primarySoft : "transparent" }}>
-                    <input type="checkbox" disabled={c.fixed} checked={on} onChange={() => setVisible(on ? visible.filter((x) => x !== c.id) : [...visible, c.id])} style={{ accentColor: T.primary }} />
-                    {c.label}
-                  </label>
-                );
-              })}
+              <div className="p-2 overflow-y-auto pg-scroll">
+                {COLS.map((c) => {
+                  const on = c.fixed || visible.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors" style={{ cursor: c.fixed ? "not-allowed" : "pointer", opacity: c.fixed ? 0.55 : 1, background: on ? T.primarySoft : "transparent" }}>
+                      <input type="checkbox" disabled={c.fixed} checked={on} onChange={() => setVisible(on ? visible.filter((x) => x !== c.id) : [...visible, c.id])} style={{ accentColor: T.primary }} />
+                      {c.label}
+                    </label>
+                  );
+                })}
+              </div>
             </div>
           </Dropdown>
 
