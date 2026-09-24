@@ -181,8 +181,8 @@ export function Dropdown({ renderTrigger, children, align = "left", T, width, up
       {renderTrigger({ open, toggle: () => setOpen((o) => !o) })}
       {open && (
         <div
-          className={`pa-pop-in absolute z-40 rounded-xl border shadow-xl ${up ? "bottom-full mb-2" : "mt-2"}`}
-          style={{ [align]: 0, minWidth: width || 220, background: T.surface, borderColor: T.border, color: T.ink }}
+          className={`pa-pop-in pg-scroll absolute z-40 rounded-xl border shadow-xl overflow-y-auto ${up ? "bottom-full mb-2" : "mt-2"}`}
+          style={{ [align]: 0, minWidth: width || 220, maxHeight: "min(420px, 70vh)", background: T.surface, borderColor: T.border, color: T.ink }}
         >
           {typeof children === "function" ? children({ close: () => setOpen(false) }) : children}
         </div>
