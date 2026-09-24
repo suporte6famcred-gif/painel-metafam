@@ -87,6 +87,8 @@ const emptyModelo = () => ({
   idioma: "pt_BR",
   cabecalhoTipo: "NONE",
   cabecalhoTexto: "",
+  cabecalhoMidiaUrl: "",
+  cabecalhoMidiaNome: "",
   corpo: "",
   rodape: "",
   botoes: [],
@@ -183,14 +185,29 @@ function PreviewWhatsApp({ m, T, themeMode }) {
   const soft = dark ? "#8696A0" : "#667781";
   const link = dark ? "#53BDEB" : "#027EB5";
   const HeaderIcon = m.cabecalhoTipo === "VIDEO" ? Video : m.cabecalhoTipo === "DOCUMENT" ? FileText : ImageIcon;
+  const temMidia = !!m.cabecalhoMidiaUrl;
 
   return (
     <div className="rounded-xl p-4" style={{ background: chatBg }}>
       <div className="max-w-[300px] mx-auto flex flex-col gap-1">
         <div className="rounded-lg overflow-hidden shadow-sm" style={{ background: bubble, color: txt }}>
           {["IMAGE", "VIDEO", "DOCUMENT"].includes(m.cabecalhoTipo) && (
-            <div className="h-32 flex items-center justify-center" style={{ background: dark ? "#2A3942" : "#D9DDE0", color: soft }}>
-              <HeaderIcon size={34} />
+            <div className="h-32 flex items-center justify-center overflow-hidden" style={{ background: dark ? "#2A3942" : "#D9DDE0", color: soft }}>
+              {m.cabecalhoTipo === "IMAGE" && temMidia ? (
+                <img src={m.cabecalhoMidiaUrl} alt="Prévia do cabeçalho" className="w-full h-full object-cover" />
+              ) : m.cabecalhoTipo === "VIDEO" && temMidia ? (
+                <video src={m.cabecalhoMidiaUrl} className="w-full h-full object-cover" muted playsInline />
+              ) : m.cabecalhoTipo === "DOCUMENT" && temMidia ? (
+                <div className="flex flex-col items-center gap-1.5 px-3 text-center">
+                  <FileText size={30} />
+                  <span className="text-[10px] leading-tight break-all line-clamp-2">{m.cabecalhoMidiaNome || "documento.pdf"}</span>
+                </div>
+              ) : (
+                <div className="flex flex-col items-center gap-1.5" style={{ color: soft }}>
+                  <HeaderIcon size={34} />
+                  <span className="text-[10px]">Sem arquivo anexado</span>
+                </div>
+              )}
             </div>
           )}
           <div className="px-3 pt-2 pb-1.5 text-[13.5px] leading-snug">
@@ -220,6 +237,75 @@ function PreviewWhatsApp({ m, T, themeMode }) {
           );
         })}
       </div>
+    </div>
+  );
+}
+
+/* Limite de segurança para anexar mídia embutida (base64) no documento do Firestore.
+   Um documento inteiro não pode passar de ~1 MiB, então deixamos folga generosa. */
+const LIMITE_ANEXO = 700 * 1024;
+
+/* Campo de anexo do cabeçalho: aceita URL colada OU upload de arquivo (vira base64) */
+function CabecalhoMidia({ f, setF, T }) {
+  const tipo = f.cabecalhoTipo;
+  const accept = tipo === "IMAGE" ? "image/*" : tipo === "VIDEO" ? "video/*" : ".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx";
+  const isDataUrl = (f.cabecalhoMidiaUrl || "").startsWith("data:");
+
+  const anexar = (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    if (file.size > LIMITE_ANEXO) {
+      alert(`Esse arquivo tem ${(file.size / 1024 / 1024).toFixed(1)} MB — o limite para anexar aqui é ~700 KB. Use o campo de URL acima para arquivos maiores (hospede em algum link público).`);
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => setF((prev) => ({ ...prev, cabecalhoMidiaUrl: reader.result, cabecalhoMidiaNome: file.name }));
+    reader.onerror = () => alert("Não foi possível ler esse arquivo.");
+    reader.readAsDataURL(file);
+  };
+
+  const remover = () => setF((prev) => ({ ...prev, cabecalhoMidiaUrl: "", cabecalhoMidiaNome: "" }));
+
+  return (
+    <div className="flex flex-col gap-2 mt-2 p-3 rounded-lg border border-dashed" style={{ borderColor: T.border }}>
+      <input
+        value={isDataUrl ? "" : f.cabecalhoMidiaUrl}
+        onChange={(e) => setF((prev) => ({ ...prev, cabecalhoMidiaUrl: e.target.value, cabecalhoMidiaNome: "" }))}
+        placeholder="Cole a URL pública do arquivo (https://…)"
+        disabled={isDataUrl}
+        className={inputCls}
+        style={{ ...inputStyleFor(T), opacity: isDataUrl ? 0.5 : 1 }}
+      />
+
+      <div className="flex items-center gap-2 flex-wrap">
+        <label className="px-3 py-1.5 rounded-lg text-xs font-medium cursor-pointer border inline-flex items-center gap-1.5" style={{ borderColor: T.border, color: T.inkSoft }}>
+          <input type="file" accept={accept} className="hidden" onChange={anexar} />
+          {tipo === "IMAGE" ? <ImageIcon size={13} /> : tipo === "VIDEO" ? <Video size={13} /> : <FileText size={13} />}
+          Anexar arquivo…
+        </label>
+
+        {f.cabecalhoMidiaUrl && (
+          <>
+            {isDataUrl && (
+              <span className="text-xs truncate max-w-[160px]" style={{ color: T.inkSoft }} title={f.cabecalhoMidiaNome}>
+                {f.cabecalhoMidiaNome || "arquivo anexado"}
+              </span>
+            )}
+            <button type="button" onClick={remover} className="text-xs text-red-500 shrink-0">
+              Remover
+            </button>
+          </>
+        )}
+      </div>
+
+      {isDataUrl && tipo === "IMAGE" && (
+        <img src={f.cabecalhoMidiaUrl} alt="" className="h-16 w-16 object-cover rounded-lg border" style={{ borderColor: T.borderSoft }} />
+      )}
+
+      <p className="text-[11px] leading-relaxed" style={{ color: T.inkFaint }}>
+        Anexos ficam salvos direto no modelo (até ~700 KB — bom para imagens). Para vídeos, documentos ou arquivos maiores, prefira colar uma URL pública: é também o formato que a Meta exige na hora de cadastrar o modelo de verdade.
+      </p>
     </div>
   );
 }
@@ -311,7 +397,19 @@ function ModeloModal({ initial, modelos, bms, porCanal, T, themeMode, onClose, o
 
               <Field label="Cabeçalho (opcional)" T={T}>
                 <div className="flex flex-col gap-2">
-                  <select value={f.cabecalhoTipo} onChange={set("cabecalhoTipo")} className={inputCls} style={inputStyleFor(T)}>
+                  <select
+                    value={f.cabecalhoTipo}
+                    onChange={(e) =>
+                      setF((prev) => ({
+                        ...prev,
+                        cabecalhoTipo: e.target.value,
+                        cabecalhoMidiaUrl: "",
+                        cabecalhoMidiaNome: "",
+                      }))
+                    }
+                    className={inputCls}
+                    style={inputStyleFor(T)}
+                  >
                     <option value="NONE">Nenhum</option>
                     <option value="TEXT">Texto</option>
                     <option value="IMAGE">Imagem</option>
@@ -328,6 +426,7 @@ function ModeloModal({ initial, modelos, bms, porCanal, T, themeMode, onClose, o
                       style={inputStyleFor(T)}
                     />
                   )}
+                  {["IMAGE", "VIDEO", "DOCUMENT"].includes(f.cabecalhoTipo) && <CabecalhoMidia f={f} setF={setF} T={T} />}
                 </div>
               </Field>
 
