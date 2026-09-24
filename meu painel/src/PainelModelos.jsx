@@ -17,9 +17,14 @@ import {
   Image as ImageIcon,
   Video,
   FileText,
+  List,
+  LayoutGrid,
+  Clock,
+  Globe2,
 } from "lucide-react";
 import { db } from "./firebase";
 import { collection, onSnapshot, doc, setDoc, deleteDoc } from "firebase/firestore";
+import { AnimStyles } from "./painelShared";
 
 /* =====================================================================
    PAINEL DE MODELOS DE MENSAGEM
@@ -176,8 +181,9 @@ function fmt(text) {
 const ICONE_BOTAO = { QUICK_REPLY: Reply, URL: ExternalLink, PHONE: Phone };
 const ROTULO_BOTAO = { QUICK_REPLY: "Resposta rápida", URL: "Link (URL)", PHONE: "Ligar" };
 
-/* Prévia igual à do WhatsApp Manager: fundo do chat, balão, rodapé e botões */
-function PreviewWhatsApp({ m, T, themeMode }) {
+/* Prévia igual à do WhatsApp Manager: fundo do chat, balão, rodapé e botões.
+   compact=true encolhe tudo para caber num card da lista. */
+function PreviewWhatsApp({ m, T, themeMode, compact }) {
   const dark = themeMode === "dark";
   const chatBg = dark ? "#0B141A" : "#ECE5DD";
   const bubble = dark ? "#1F2C34" : "#FFFFFF";
@@ -188,54 +194,65 @@ function PreviewWhatsApp({ m, T, themeMode }) {
   const temMidia = !!m.cabecalhoMidiaUrl;
 
   return (
-    <div className="rounded-xl p-4" style={{ background: chatBg }}>
-      <div className="max-w-[300px] mx-auto flex flex-col gap-1">
+    <div className={compact ? "rounded-lg p-2.5" : "rounded-xl p-4"} style={{ background: chatBg }}>
+      <div className={`mx-auto flex flex-col gap-1 ${compact ? "max-w-[230px]" : "max-w-[300px]"}`}>
         <div className="rounded-lg overflow-hidden shadow-sm" style={{ background: bubble, color: txt }}>
           {["IMAGE", "VIDEO", "DOCUMENT"].includes(m.cabecalhoTipo) && (
-            <div className="h-32 flex items-center justify-center overflow-hidden" style={{ background: dark ? "#2A3942" : "#D9DDE0", color: soft }}>
+            <div className={`${compact ? "h-20" : "h-32"} flex items-center justify-center overflow-hidden`} style={{ background: dark ? "#2A3942" : "#D9DDE0", color: soft }}>
               {m.cabecalhoTipo === "IMAGE" && temMidia ? (
                 <img src={m.cabecalhoMidiaUrl} alt="Prévia do cabeçalho" className="w-full h-full object-cover" />
               ) : m.cabecalhoTipo === "VIDEO" && temMidia ? (
                 <video src={m.cabecalhoMidiaUrl} className="w-full h-full object-cover" muted playsInline />
               ) : m.cabecalhoTipo === "DOCUMENT" && temMidia ? (
                 <div className="flex flex-col items-center gap-1.5 px-3 text-center">
-                  <FileText size={30} />
-                  <span className="text-[10px] leading-tight break-all line-clamp-2">{m.cabecalhoMidiaNome || "documento.pdf"}</span>
+                  <FileText size={compact ? 22 : 30} />
+                  {!compact && <span className="text-[10px] leading-tight break-all line-clamp-2">{m.cabecalhoMidiaNome || "documento.pdf"}</span>}
                 </div>
               ) : (
                 <div className="flex flex-col items-center gap-1.5" style={{ color: soft }}>
-                  <HeaderIcon size={34} />
-                  <span className="text-[10px]">Sem arquivo anexado</span>
+                  <HeaderIcon size={compact ? 22 : 34} />
+                  {!compact && <span className="text-[10px]">Sem arquivo anexado</span>}
                 </div>
               )}
             </div>
           )}
-          <div className="px-3 pt-2 pb-1.5 text-[13.5px] leading-snug">
+          <div className={`px-3 ${compact ? "pt-1.5 pb-1" : "pt-2 pb-1.5"} text-[13.5px] leading-snug`}>
             {m.cabecalhoTipo === "TEXT" && m.cabecalhoTexto && (
-              <div className="font-semibold mb-1">{fmt(m.cabecalhoTexto)}</div>
+              <div className="font-semibold mb-1 truncate">{fmt(m.cabecalhoTexto)}</div>
             )}
-            <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+            <div
+              style={{
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-word",
+                ...(compact ? { display: "-webkit-box", WebkitLineClamp: 3, WebkitBoxOrient: "vertical", overflow: "hidden" } : {}),
+              }}
+            >
               {m.corpo ? fmt(m.corpo) : <span style={{ color: soft }}>O texto do modelo aparece aqui…</span>}
             </div>
-            {m.rodape && (
+            {m.rodape && !compact && (
               <div className="mt-1.5 text-xs" style={{ color: soft }}>
                 {m.rodape}
               </div>
             )}
-            <div className="text-[10px] text-right mt-0.5" style={{ color: soft }}>
-              12:00
-            </div>
+            {!compact && (
+              <div className="text-[10px] text-right mt-0.5" style={{ color: soft }}>
+                12:00
+              </div>
+            )}
           </div>
         </div>
-        {(m.botoes || []).map((b, i) => {
+        {(m.botoes || []).slice(0, compact ? 2 : undefined).map((b, i) => {
           const Icon = ICONE_BOTAO[b.tipo] || Reply;
           return (
-            <div key={i} className="rounded-lg shadow-sm py-2 px-3 flex items-center justify-center gap-2 text-[13px] font-medium" style={{ background: bubble, color: link }}>
+            <div key={i} className={`rounded-lg shadow-sm ${compact ? "py-1.5" : "py-2"} px-3 flex items-center justify-center gap-2 text-[13px] font-medium`} style={{ background: bubble, color: link }}>
               <Icon size={14} />
               {b.texto || ROTULO_BOTAO[b.tipo]}
             </div>
           );
         })}
+        {compact && m.botoes && m.botoes.length > 2 && (
+          <div className="text-center text-[11px]" style={{ color: soft }}>+{m.botoes.length - 2} botão(ões)</div>
+        )}
       </div>
     </div>
   );
@@ -310,7 +327,69 @@ function CabecalhoMidia({ f, setF, T }) {
   );
 }
 
-/* ---------------- modal: criar / editar modelo ---------------- */
+/* Card da lista de modelos — mostra a prévia da mensagem de cara */
+function ModeloCard({ m, T, themeMode, idx, onOpen, onEdit, onDelete }) {
+  const regs = Object.entries(m.canais || {});
+  const resumo = {};
+  regs.forEach(([, r]) => (resumo[r.status] = (resumo[r.status] || 0) + 1));
+
+  return (
+    <div
+      className="pa-fade pa-lift rounded-xl border overflow-hidden flex flex-col cursor-pointer"
+      style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: `${Math.min(idx, 10) * 40}ms` }}
+      onClick={() => onOpen(m.id)}
+    >
+      <div className="p-3 pb-0">
+        <PreviewWhatsApp m={m} T={T} themeMode={themeMode} compact />
+      </div>
+
+      <div className="p-4 pt-3 flex flex-col gap-2.5 mt-auto">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <div className="pg-mono text-sm font-semibold truncate">{m.nome}</div>
+            <div className="text-[11px] flex items-center gap-1 mt-0.5" style={{ color: T.inkFaint }}>
+              <Globe2 size={11} /> {IDIOMAS[m.idioma] || m.idioma}
+            </div>
+          </div>
+          <div className="flex gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => onEdit(m)} className="p-1.5 rounded-md transition-colors" style={{ color: T.primary }} title="Editar">
+              <Pencil size={15} />
+            </button>
+            <button onClick={() => onDelete(m)} className="p-1.5 rounded-md text-red-500" title="Excluir">
+              <Trash2 size={15} />
+            </button>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <Pill T={T}>{CATEGORIAS[m.categoria] || m.categoria}</Pill>
+          {Object.entries(resumo).map(([st, n]) => (
+            <span key={st} className="inline-flex items-center gap-1 text-[11px] font-medium" style={{ color: toneColor(T, STATUS_MODELO[st]?.tone) }}>
+              <span className="w-1.5 h-1.5 rounded-full" style={{ background: toneColor(T, STATUS_MODELO[st]?.tone) }} />
+              {n} {STATUS_MODELO[st]?.label.toLowerCase()}
+            </span>
+          ))}
+          {regs.length === 0 && (
+            <span className="text-[11px]" style={{ color: T.inkFaint }}>
+              Sem canais cadastrados
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center justify-between text-[11px] pt-2 border-t" style={{ color: T.inkFaint, borderColor: T.borderSoft }}>
+          <span className="flex items-center gap-1">
+            <Clock size={11} /> {fmtData(m.atualizadoEm)}
+          </span>
+          <span>
+            {regs.length} canal{regs.length === 1 ? "" : "is"}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
 function ModeloModal({ initial, modelos, bms, porCanal, T, themeMode, onClose, onSave }) {
   const [f, setF] = useState(() => ({ ...emptyModelo(), ...initial, botoes: initial?.botoes || [], canais: { ...(initial?.canais || {}) } }));
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -680,6 +759,7 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
   const [loading, setLoading] = useState(true);
   const [erro, setErro] = useState("");
   const [sub, setSub] = useState("modelos");
+  const [view, setView] = useState("cards");
 
   const [search, setSearch] = useState("");
   const [fCategoria, setFCategoria] = useState("todos");
@@ -836,8 +916,10 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
 
   return (
     <div className="flex flex-col gap-6">
+      <AnimStyles />
+
       {/* topo: abas + ação */}
-      <div className="flex items-center justify-between flex-wrap gap-3">
+      <div className="pa-fade flex items-center justify-between flex-wrap gap-3">
         <div className="inline-flex p-1 rounded-lg border" style={{ borderColor: T.border, background: T.surface }}>
           {[
             { id: "modelos", label: "Modelos" },
@@ -846,14 +928,14 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
             <button
               key={t.id}
               onClick={() => setSub(t.id)}
-              className="px-4 py-1.5 rounded-md text-sm"
+              className="px-4 py-1.5 rounded-md text-sm transition-colors"
               style={{ background: sub === t.id ? T.primary : "transparent", color: sub === t.id ? "#fff" : T.inkSoft, fontWeight: sub === t.id ? 600 : 500 }}
             >
               {t.label}
             </button>
           ))}
         </div>
-        <button onClick={abrirNovo} className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
+        <button onClick={abrirNovo} className="pa-chip px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
           <Plus size={18} /> Novo modelo
         </button>
       </div>
@@ -861,18 +943,23 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
       {/* resumo */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
-          { label: "Modelos registrados", value: stats.total },
-          { label: "Canais aptos a cadastrar", value: stats.aptos, color: T.STATUS.ativa.fg },
-          { label: "Canais sem vaga ou bloqueados", value: stats.semVaga, color: stats.semVaga ? T.STATUS.banida.fg : undefined },
-          { label: "Em análise · rejeitados", value: `${stats.emAnalise} · ${stats.rejeitados}`, color: T.STATUS.em_recurso.fg },
-        ].map((s) => (
-          <div key={s.label} className="rounded-xl border p-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-            <div className="text-xs" style={{ color: T.inkSoft }}>
-              {s.label}
+          { label: "Modelos registrados", value: stats.total, icon: MessageSquare },
+          { label: "Canais aptos a cadastrar", value: stats.aptos, color: T.STATUS.ativa.fg, icon: Check },
+          { label: "Canais sem vaga ou bloqueados", value: stats.semVaga, color: stats.semVaga ? T.STATUS.banida.fg : undefined, icon: Ban },
+          { label: "Em análise · rejeitados", value: `${stats.emAnalise} · ${stats.rejeitados}`, color: T.STATUS.em_recurso.fg, icon: Clock },
+        ].map((s, i) => (
+          <div key={s.label} className="pa-fade rounded-xl border p-4 flex items-start justify-between gap-2" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: `${i * 50}ms` }}>
+            <div>
+              <div className="text-xs" style={{ color: T.inkSoft }}>
+                {s.label}
+              </div>
+              <div className="pg-font-display text-2xl font-bold pg-tnum mt-1" style={{ color: s.color || T.ink }}>
+                {s.value}
+              </div>
             </div>
-            <div className="pg-font-display text-2xl font-bold pg-tnum mt-1" style={{ color: s.color || T.ink }}>
-              {s.value}
-            </div>
+            <span className="p-2 rounded-lg shrink-0" style={{ background: (s.color || T.primary) + "1A", color: s.color || T.primary }}>
+              <s.icon size={16} />
+            </span>
           </div>
         ))}
       </div>
@@ -888,7 +975,7 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
       )}
 
       {/* filtros */}
-      <div className="flex flex-wrap gap-2 items-center">
+      <div className="pa-fade flex flex-wrap gap-2 items-center" style={{ animationDelay: "120ms" }}>
         <div className="relative flex-1 min-w-[200px]">
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2" style={{ color: T.inkFaint }} />
           <input
@@ -933,6 +1020,13 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
                 </option>
               ))}
             </select>
+            <div className="inline-flex p-0.5 rounded-lg border self-stretch" style={{ borderColor: T.border }}>
+              {[["cards", LayoutGrid, "Cards"], ["tabela", List, "Tabela"]].map(([id, Icon, title]) => (
+                <button key={id} onClick={() => setView(id)} title={title} className="px-3 rounded-md transition-colors" style={{ background: view === id ? T.primary : "transparent", color: view === id ? "#fff" : T.inkSoft }}>
+                  <Icon size={16} />
+                </button>
+              ))}
+            </div>
           </>
         ) : (
           <select value={fVaga} onChange={(e) => setFVaga(e.target.value)} className={selCls} style={inputStyleFor(T)}>
@@ -948,35 +1042,40 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
           Carregando modelos…
         </div>
       ) : sub === "modelos" ? (
-        /* ------------- lista de modelos (estilo WhatsApp Manager) ------------- */
-        <div className="rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                <th className="p-4 font-medium">Nome e idioma</th>
-                <th className="p-4 font-medium">Categoria</th>
-                <th className="p-4 font-medium">Status</th>
-                <th className="p-4 font-medium">Canais</th>
-                <th className="p-4 font-medium">Última edição</th>
-                <th className="p-4 text-right font-medium">Ações</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
-              {filtrados.length === 0 ? (
-                <tr>
-                  <td colSpan="6" className="p-10 text-center" style={{ color: T.inkFaint }}>
-                    {modelos.length === 0 ? (
-                      <div className="flex flex-col items-center gap-3">
-                        <MessageSquare size={28} />
-                        Nenhum modelo registrado. Cadastre o primeiro para acompanhar em quais canais ele está.
-                      </div>
-                    ) : (
-                      "Nenhum modelo com os filtros aplicados."
-                    )}
-                  </td>
+        filtrados.length === 0 ? (
+          <div className="rounded-xl border p-10 text-center text-sm" style={{ background: T.surface, borderColor: T.borderSoft, color: T.inkFaint }}>
+            {modelos.length === 0 ? (
+              <div className="flex flex-col items-center gap-3">
+                <MessageSquare size={28} />
+                Nenhum modelo registrado. Cadastre o primeiro para acompanhar em quais canais ele está.
+              </div>
+            ) : (
+              "Nenhum modelo com os filtros aplicados."
+            )}
+          </div>
+        ) : view === "cards" ? (
+          /* ------------- cards com prévia da mensagem (padrão) ------------- */
+          <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-4">
+            {filtrados.map((m, idx) => (
+              <ModeloCard key={m.id} m={m} T={T} themeMode={themeMode} idx={idx} onOpen={setDetalhe} onEdit={abrirEdicao} onDelete={handleDelete} />
+            ))}
+          </div>
+        ) : (
+          /* ------------- lista de modelos (estilo WhatsApp Manager) ------------- */
+          <div className="rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
+                  <th className="p-4 font-medium">Nome e idioma</th>
+                  <th className="p-4 font-medium">Categoria</th>
+                  <th className="p-4 font-medium">Status</th>
+                  <th className="p-4 font-medium">Canais</th>
+                  <th className="p-4 font-medium">Última edição</th>
+                  <th className="p-4 text-right font-medium">Ações</th>
                 </tr>
-              ) : (
-                filtrados.map((m) => {
+              </thead>
+              <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
+                {filtrados.map((m) => {
                   const regs = Object.entries(m.canais || {});
                   const resumo = {};
                   regs.forEach(([, r]) => (resumo[r.status] = (resumo[r.status] || 0) + 1));
@@ -1029,11 +1128,11 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
                       </td>
                     </tr>
                   );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
+                })}
+              </tbody>
+            </table>
+          </div>
+        )
       ) : (
         /* ------------- canais: quem tem o quê e quem não pode mais cadastrar ------------- */
         <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -1042,12 +1141,12 @@ export default function PainelModelos({ bms, T, themeMode, registrarHistorico })
               Nenhum canal encontrado.
             </div>
           )}
-          {canaisFiltrados.map(({ bm, usados, limite, pode, motivo }) => {
+          {canaisFiltrados.map(({ bm, usados, limite, pode, motivo }, idx) => {
             const pct = Math.min(100, Math.round((usados / limite) * 100));
             const corBarra = pct >= 100 ? T.STATUS.banida.fg : pct >= 85 ? T.STATUS.em_recurso.fg : T.primary;
             const lista = porCanal[bm.id]?.modelos || [];
             return (
-              <div key={bm.id} className="rounded-xl border p-5 flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
+              <div key={bm.id} className="pa-fade pa-lift rounded-xl border p-5 flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: `${Math.min(idx, 10) * 30}ms` }}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-semibold truncate">{bm.nome}</div>
