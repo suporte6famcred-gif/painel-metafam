@@ -38,6 +38,9 @@ import {
 } from "recharts";
 import { db } from "./firebase";
 import PainelModelos from "./PainelModelos";
+import PainelAtivos from "./PainelAtivos";
+import PainelTags from "./PainelTags";
+import { AnimStyles } from "./painelShared";
 import {
   collection,
   onSnapshot,
@@ -1017,6 +1020,7 @@ export default function PainelGestaoAtivos() {
   const NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
+    { id: "tags", label: "Tags", icon: TagIcon },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
     { id: "modelos", label: "Modelos de mensagem", icon: MessageSquare },
     { id: "financeiro", label: "Financeiro", icon: Wallet },
@@ -1050,6 +1054,7 @@ export default function PainelGestaoAtivos() {
   return (
     <div className="min-h-screen flex" style={{ background: T.bg, color: T.ink, ...dotGridStyle(T, themeMode) }}>
       <FontStyles />
+      <AnimStyles />
 
       {/* Sidebar (desktop) */}
       <aside
@@ -1257,123 +1262,17 @@ export default function PainelGestaoAtivos() {
         )}
 
         {tab === "bms" && (
-          <div className="flex flex-col gap-4">
-            <div className="p-4 rounded-xl border flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex flex-col md:flex-row gap-3">
-                <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-1.5" style={{ borderColor: T.border }}>
-                  <Search size={18} style={{ color: T.inkFaint }} />
-                  <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por nome, fornecedor ou telefone..." className="w-full bg-transparent text-sm outline-none" style={{ color: T.ink }} />
-                </div>
-                <select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
-                  <option value="todos">Todos os Status</option>
-                  <option value="ativa">Ativa</option>
-                  <option value="estoque">Estoque</option>
-                  <option value="em_recurso">Recurso</option>
-                  <option value="banida">Banida</option>
-                  <option value="vendida">Vendida</option>
-                </select>
-                <select value={fornecedorFilter} onChange={(e) => setFornecedorFilter(e.target.value)} className="px-3 py-2 rounded-lg text-sm" style={inputStyleFor(T)}>
-                  <option value="todos">Todos os Fornecedores</option>
-                  {fornecedorNomes.map((n) => (
-                    <option key={n} value={n}>{n}</option>
-                  ))}
-                </select>
-                <button onClick={exportarCSV} className="px-4 py-2 rounded-lg text-sm font-medium border flex items-center justify-center gap-2" style={{ borderColor: T.border, color: T.ink }}>
-                  <Download size={16} /> Exportar CSV
-                </button>
-              </div>
+          <PainelAtivos
+            bms={bms}
+            T={T}
+            onEdit={(bm) => { setEditingBm(bm); setIsModalOpen(true); }}
+            onDelete={handleDeleteBM}
+            registrarHistorico={registrarHistorico}
+          />
+        )}
 
-              <div className="flex flex-wrap items-center gap-3 pt-2 border-t text-xs" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                <span className="flex items-center gap-1 font-semibold"><Filter size={14} /> Filtro Compra:</span>
-                <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="px-2 py-1 rounded border text-xs" style={inputStyleFor(T)} />
-                <span>até</span>
-                <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="px-2 py-1 rounded border text-xs" style={inputStyleFor(T)} />
-                {filtrosAtivosCount > 0 && (
-                  <button onClick={limparFiltrosAtivos} className="underline ml-2" style={{ color: T.primary }}>
-                    Limpar todos os filtros ({filtrosAtivosCount})
-                  </button>
-                )}
-              </div>
-
-              {allTags.length > 0 && (
-                <div className="flex flex-wrap items-center gap-2 pt-2 border-t" style={{ borderColor: T.borderSoft }}>
-                  <span className="flex items-center gap-1 text-xs font-semibold" style={{ color: T.inkSoft }}>
-                    <TagIcon size={14} /> Tags:
-                  </span>
-                  {allTags.map((t) => {
-                    const active = selectedTags.includes(t);
-                    return (
-                      <button
-                        key={t}
-                        onClick={() =>
-                          setSelectedTags((prev) => (active ? prev.filter((x) => x !== t) : [...prev, t]))
-                        }
-                        className="px-2.5 py-1 rounded-full text-xs font-medium"
-                        style={{
-                          background: active ? T.primary : T.primarySoft,
-                          color: active ? "#fff" : T.primary,
-                        }}
-                      >
-                        {t}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                    <th className="p-4">Ativo</th>
-                    <th className="p-4">Status</th>
-                    <th className="p-4">Tags</th>
-                    <th className="p-4">Telefone</th>
-                    <th className="p-4">Fornecedor</th>
-                    <th className="p-4">Data Compra</th>
-                    <th className="p-4 text-right">Valor</th>
-                    <th className="p-4 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
-                  {filteredBMs.length === 0 ? (
-                    <tr>
-                      <td colSpan="8" className="p-8 text-center" style={{ color: T.inkFaint }}>Nenhum ativo localizado com os filtros aplicados.</td>
-                    </tr>
-                  ) : (
-                    filteredBMs.map((bm) => (
-                      <tr key={bm.id}>
-                        <td className="p-4 font-medium">{bm.nome}</td>
-                        <td className="p-4"><StatusBadge status={bm.status} T={T} /></td>
-                        <td className="p-4">
-                          <div className="flex flex-wrap gap-1 max-w-[160px]">
-                            {(bm.tags || []).map((t) => (
-                              <span key={t} className="px-2 py-0.5 rounded-full text-[11px]" style={{ background: T.primarySoft, color: T.primary }}>
-                                {t}
-                              </span>
-                            ))}
-                          </div>
-                        </td>
-                        <td className="p-4" style={{ color: T.inkSoft }}>{bm.telefone || "—"}</td>
-                        <td className="p-4" style={{ color: T.inkSoft }}>{bm.fornecedor || "—"}</td>
-                        <td className="p-4 pg-tnum" style={{ color: T.inkSoft }}>{bm.dataCompra ? new Date(bm.dataCompra + "T00:00:00").toLocaleDateString("pt-BR") : "—"}</td>
-                        <td className="p-4 text-right pg-tnum font-medium">{brl(bm.valor)}</td>
-                        <td className="p-4 text-right whitespace-nowrap">
-                          <button onClick={() => { setEditingBm(bm); setIsModalOpen(true); }} className="p-1.5 mr-1 rounded" style={{ color: T.primary }}>
-                            <Pencil size={16} />
-                          </button>
-                          <button onClick={() => handleDeleteBM(bm.id, bm.nome)} className="p-1.5 rounded text-red-500">
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+        {tab === "tags" && (
+          <PainelTags bms={bms} T={T} registrarHistorico={registrarHistorico} />
         )}
 
         {tab === "financeiro" && (
