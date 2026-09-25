@@ -788,7 +788,6 @@ export default function PainelTelefonia({ T, registrarHistorico }) {
           </div>
 
           <div className="relative z-50">
-                      <div className="relative z-50">
             <Dropdown T={T} up renderTrigger={({ toggle }) => (
               <button onClick={toggle} className="pa-chip px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{ background: T.borderSoft, color: T.inkSoft }}><Check size={14} /> Mudar status</button>
             )}>
