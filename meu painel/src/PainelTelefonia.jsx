@@ -357,8 +357,6 @@ export default function PainelTelefonia({ T, registrarHistorico }) {
   }, [numeros]);
 
   const custoMensal = useMemo(
-    () => numeros.reduce((s, n) => s
-  const custoMensal = useMemo(
     () => numeros.reduce((s, n) => s + (Number(n.valor) || 0), 0),
     [numeros]
   );
