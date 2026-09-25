@@ -1140,10 +1140,10 @@ export default function PainelGestaoAtivos() {
           <PainelTags bms={bms} T={T} registrarHistorico={registrarHistorico} />
         )}
 
+        
         {tab === "financeiro" && (
-      
-            <div className="flex flex-col gap-6">
-  <div className="flex items-center justify-between flex-wrap gap-3">
+          <div className="flex flex-col gap-6">
+            <div className="flex items-center justify-between flex-wrap gap-3">
               <h1 className="pg-font-display text-2xl font-bold tracking-tight">Financeiro</h1>
               <MesSelector />
             </div>
