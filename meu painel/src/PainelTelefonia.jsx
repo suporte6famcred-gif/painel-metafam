@@ -485,8 +485,7 @@ export default function PainelTelefonia({ T, registrarHistorico }) {
       default: return <span style={{ color: T.inkSoft }}>{n[id] || "—"}</span>;
     }
   };
-
-  /* ---------------- ABA IMPORTAR ---------------- */
+    /* ---------------- ABA IMPORTAR ---------------- */
   if (sub === "importar") {
     return (
       <TelefoniaImportar
@@ -518,11 +517,12 @@ export default function PainelTelefonia({ T, registrarHistorico }) {
         <Kpi T={T} delay={50} label="Conectados" value={contagem.conectado} color={T.STATUS.ativa.fg} icon={Check} active={F.status.length === 1 && F.status[0] === "conectado"} onClick={() => upd({ status: ["conectado"] })} />
         <Kpi T={T} delay={100} label="Em análise" value={contagem.em_analise} color={T.STATUS.em_recurso.fg} icon={AlertTriangle} active={F.status.length === 1 && F.status[0] === "em_analise"} onClick={() => upd({ status: ["em_analise"] })} />
         <Kpi T={T} delay={150} label="Banidos" value={contagem.banido} color={T.STATUS.banida.fg} icon={Ban} active={F.status.length === 1 && F.status[0] === "banido"} onClick={() => upd({ status: ["banido"] })} />
-        <Kpi T={T} delay={200} label="Custo mensal" value={custoMensal} fmt={brl} color={T.primary} sub="soma dos números ativos" />
+        <Kpi T={T} delay={200} label="Custo mensal" value={custoMensal} fmt={brl} color={T.primary} sub="soma de todos os números" />
       </div>
 
       {/* Barra de controle */}
       <div className="pa-fade rounded-xl border p-4 flex flex-col gap-4" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "120ms" }}>
+        {/* distribuição por status = filtro rápido */}
         <div className="flex flex-col gap-2.5">
           <div className="flex h-2 rounded-full overflow-hidden gap-0.5" style={{ background: T.borderSoft }}>
             {STATUS_ORDEM.map((k) => contagem[k] ? (
@@ -543,4 +543,283 @@ export default function PainelTelefonia({ T, registrarHistorico }) {
               const on = F.status.includes(k);
               const fg = statusCor(T)[k];
               return (
-                <button key={k} onClick={() => toggleStatus(k)} className="pa-chip px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5" style={{ background: on ? fg : rgba(fg, 0.1), color: on ? "#fff" : fg
+                <button key={k} onClick={() => toggleStatus(k)} className="pa-chip px-3 py-1 rounded-full text-xs font-medium inline-flex items-center gap-1.5" style={{ background: on ? fg : rgba(fg, 0.1), color: on ? "#fff" : fg }}>
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: on ? "#fff" : fg }} />
+                  {STATUS_LABEL[k]} <span className="pg-mono opacity-80">{contagem[k] || 0}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* busca + botões */}
+        <div className="flex flex-col md:flex-row gap-2.5">
+          <div className="flex-1 flex items-center gap-2 border rounded-lg px-3 py-2 transition-shadow focus-within:shadow-md" style={{ borderColor: T.border }}>
+            <Search size={17} style={{ color: T.inkFaint }} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Buscar por número, apelido, operadora, colaborador ou tag…" className="w-full bg-transparent text-sm outline-none" style={{ color: T.ink }} />
+            {search && <button onClick={() => setSearch("")}><X size={15} style={{ color: T.inkFaint }} /></button>}
+          </div>
+
+          <button onClick={() => setShowFiltros((s) => !s)} className="pa-chip px-3.5 py-2 rounded-lg text-sm font-medium border flex items-center justify-center gap-2" style={{ borderColor: showFiltros || chips.length ? T.primary : T.border, color: showFiltros || chips.length ? T.primary : T.ink, background: showFiltros ? T.primarySoft : "transparent" }}>
+            <SlidersHorizontal size={16} /> Filtros
+            {chips.length > 0 && <span className="pg-mono text-[11px] px-1.5 rounded-full text-white" style={{ background: T.primary }}>{chips.length}</span>}
+          </button>
+
+          <Dropdown T={T} align="right" width={250} renderTrigger={({ toggle }) => (
+            <button onClick={toggle} className="pa-chip w-full px-3.5 py-2 rounded-lg text-sm font-medium border flex items-center justify-center gap-2" style={{ borderColor: T.border, color: T.ink }}>
+              <Eye size={16} /> Colunas <span className="pg-mono text-[11px]" style={{ color: T.inkFaint }}>{cols.length}/{COLS.length}</span>
+            </button>
+          )}>
+            <div className="flex flex-col" style={{ maxHeight: "min(420px, 70vh)" }}>
+              <div className="flex items-center justify-between px-3 py-2.5 border-b text-xs shrink-0 sticky top-0 z-10" style={{ color: T.inkSoft, borderColor: T.borderSoft, background: T.surface }}>
+                <span className="font-semibold">Colunas visíveis</span>
+                <span className="flex gap-2">
+                  <button onClick={() => setVisible(COLS.map((c) => c.id))} className="underline" style={{ color: T.primary }}>Todas</button>
+                  <button onClick={() => setVisible(COLS_PADRAO)} className="underline" style={{ color: T.primary }}>Padrão</button>
+                </span>
+              </div>
+              <div className="p-2 overflow-y-auto pg-scroll">
+                {COLS.map((c) => {
+                  const on = c.fixed || visible.includes(c.id);
+                  return (
+                    <label key={c.id} className="flex items-center gap-2.5 px-2 py-2 rounded-lg text-sm transition-colors" style={{ cursor: c.fixed ? "not-allowed" : "pointer", opacity: c.fixed ? 0.55 : 1, background: on ? T.primarySoft : "transparent" }}>
+                      <input type="checkbox" disabled={c.fixed} checked={on} onChange={() => setVisible(on ? visible.filter((x) => x !== c.id) : [...visible, c.id])} style={{ accentColor: T.primary }} />
+                      {c.label}
+                    </label>
+                  );
+                })}
+              </div>
+            </div>
+          </Dropdown>
+
+          <div className="inline-flex p-0.5 rounded-lg border self-stretch" style={{ borderColor: T.border }}>
+            {[["tabela", List], ["cards", LayoutGrid]].map(([id, Icon]) => (
+              <button key={id} onClick={() => setView(id)} title={id === "tabela" ? "Tabela" : "Cards"} className="px-3 rounded-md transition-colors" style={{ background: view === id ? T.primary : "transparent", color: view === id ? "#fff" : T.inkSoft }}>
+                <Icon size={16} />
+              </button>
+            ))}
+          </div>
+
+          <button onClick={exportarCSV} className="pa-chip px-3.5 py-2 rounded-lg text-sm font-medium border flex items-center justify-center gap-2" style={{ borderColor: T.border, color: T.ink }}>
+            <Download size={16} /> CSV
+          </button>
+
+          <button onClick={() => setSub("importar")} className="pa-chip px-3.5 py-2 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
+            <Upload size={16} /> Importar
+          </button>
+
+          <button onClick={() => { setEditing(null); setModalOpen(true); }} className="pa-chip px-3.5 py-2 rounded-lg text-sm font-medium text-white flex items-center justify-center gap-2 transition-shadow hover:shadow-lg" style={{ background: T.primary }}>
+            <Plus size={16} /> Novo
+          </button>
+        </div>
+
+        {/* painel de filtros avançados */}
+        {showFiltros && (
+          <div className="pa-fade grid sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t" style={{ borderColor: T.borderSoft }}>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Operadora</span>
+              <MultiSelect T={T} label="Operadoras" options={operadoras.map((o) => ({ value: o, label: o }))} value={F.operadora} onChange={(v) => upd({ operadora: v })} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Tipo</span>
+              <MultiSelect T={T} label="Tipos" options={Object.entries(TIPOS).map(([k, v]) => ({ value: k, label: v }))} value={F.tipo} onChange={(v) => upd({ tipo: v })} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Fornecedor</span>
+              <MultiSelect T={T} label="Fornecedores" options={fornecedoresNomes.map((f) => ({ value: f, label: f }))} value={F.fornecedor} onChange={(v) => upd({ fornecedor: v })} />
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium flex items-center justify-between" style={{ color: T.inkSoft }}>
+                Tags
+                <label className="flex items-center gap-1.5 font-normal cursor-pointer"><input type="checkbox" checked={F.semTag} onChange={(e) => upd({ semTag: e.target.checked })} style={{ accentColor: T.primary }} /> apenas sem tag</label>
+              </span>
+              <div className="flex gap-2">
+                <div className="flex-1">
+                  <MultiSelect T={T} label="Tags" options={catalogo.map((t) => ({ value: t.nome, label: t.nome, render: <TagChip nome={t.nome} cor={t.cor} T={T} /> }))} value={F.tags} onChange={(v) => upd({ tags: v })} />
+                </div>
+                <div className="w-44"><Seg T={T} value={F.tagsModo} onChange={(v) => upd({ tagsModo: v })} options={[["qualquer", "Qualquer"], ["todas", "Todas"]]} /></div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-1.5">
+              <span className="text-xs font-medium" style={{ color: T.inkSoft }}>Data de compra</span>
+              <div className="flex items-center gap-1.5">
+                <input type="date" value={F.compraDe} onChange={(e) => upd({ compraDe: e.target.value })} className={inputCls} style={inputStyleFor(T)} />
+                <span className="text-xs" style={{ color: T.inkFaint }}>até</span>
+                <input type="date" value={F.compraAte} onChange={(e) => upd({ compraAte: e.target.value })} className={inputCls} style={inputStyleFor(T)} />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* chips de filtros ativos */}
+        {chips.length > 0 && (
+          <div className="flex flex-wrap items-center gap-2 pt-3 border-t" style={{ borderColor: T.borderSoft }}>
+            {chips.map((c) => (
+              <button key={c.k} onClick={c.off} className="pa-chip pa-pop-in inline-flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-full text-xs" style={{ background: T.primarySoft, color: T.primary }}>
+                {c.l} <X size={12} />
+              </button>
+            ))}
+            <button onClick={limparTudo} className="text-xs underline ml-1" style={{ color: T.inkSoft }}>Limpar tudo ({chips.length})</button>
+          </div>
+        )}
+      </div>
+            {/* Resultado */}
+      {filtrados.length === 0 ? (
+        <div className="pa-fade rounded-xl border p-14 text-center flex flex-col items-center gap-3" style={{ background: T.surface, borderColor: T.borderSoft, color: T.inkFaint }}>
+          <Search size={30} />
+          <span className="text-sm">Nenhum número com os filtros aplicados.</span>
+          {chips.length > 0 && <button onClick={limparTudo} className="px-4 py-2 rounded-lg text-sm font-medium text-white" style={{ background: T.primary }}>Limpar filtros</button>}
+        </div>
+      ) : view === "tabela" ? (
+        <div className="pa-fade rounded-xl border overflow-x-auto pg-scroll" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "160ms" }}>
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
+                <th className="p-4 w-10"><input type="checkbox" checked={todosSel} onChange={toggleTodos} style={{ accentColor: T.primary }} /></th>
+                {cols.map((c) => (
+                  <th
+                    key={c.id}
+                    onClick={() => setSort((s) => (s.key === c.id ? (s.dir === "asc" ? { key: c.id, dir: "desc" } : { key: null, dir: "asc" }) : { key: c.id, dir: "asc" }))}
+                    className={`pa-th p-4 font-medium whitespace-nowrap ${c.right ? "text-right" : ""}`}
+                    style={sort.key === c.id ? { color: T.primary } : undefined}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      {c.label}
+                      {sort.key === c.id && (sort.dir === "asc" ? <ChevronUp size={13} /> : <ChevronDown size={13} />)}
+                    </span>
+                  </th>
+                ))}
+                <th className="p-4 text-right font-medium">Ações</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
+              {mostrados.map((n, i) => (
+                <tr key={n.id} className="pa-row pa-fade" style={{ animationDelay: `${Math.min(i, 14) * 28}ms`, background: sel.has(n.id) ? rgba(T.primary, 0.07) : undefined }}>
+                  <td className="p-4"><input type="checkbox" checked={sel.has(n.id)} onChange={() => toggleSel(n.id)} style={{ accentColor: T.primary }} /></td>
+                  {cols.map((c) => <td key={c.id} className={`p-4 ${c.right ? "text-right" : ""}`}>{cell(n, c.id)}</td>)}
+                  <td className="p-4 text-right whitespace-nowrap">
+                    <button onClick={() => { setEditing(n); setModalOpen(true); }} className="pa-chip p-1.5 mr-1 rounded" style={{ color: T.primary }}><Pencil size={16} /></button>
+                    <button onClick={() => handleDelete(n.id, n.apelido || n.numero)} className="pa-chip p-1.5 rounded text-red-500"><Trash2 size={16} /></button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+          {mostrados.map((n, i) => {
+            const cor = statusCor(T)[n.status] || T.inkSoft;
+            return (
+              <div
+                key={n.id}
+                className="pa-fade pa-lift relative overflow-hidden rounded-xl border p-4 pl-5 flex flex-col gap-3"
+                style={{ background: T.surface, borderColor: sel.has(n.id) ? T.primary : T.borderSoft, animationDelay: `${Math.min(i, 14) * 35}ms` }}
+              >
+                <span className="absolute left-0 top-0 bottom-0 w-1" style={{ background: cor }} />
+                <div className="flex items-start gap-2.5">
+                  <input type="checkbox" checked={sel.has(n.id)} onChange={() => toggleSel(n.id)} className="mt-1" style={{ accentColor: T.primary }} />
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-sm leading-snug truncate">{n.apelido || n.numero}</div>
+                    <div className="pg-mono text-xs mt-0.5" style={{ color: T.inkSoft }}>{n.numero}</div>
+                    <div className="mt-1.5"><StatusPill status={n.status} T={T} /></div>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-1 min-h-[22px]">
+                  {(n.tags || []).map((t) => <TagChip key={t} nome={t} cor={porNome[t]?.cor} T={T} />)}
+                </div>
+                <div className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                  {[
+                    ["Operadora", n.operadora || "—"],
+                    ["Tipo", TIPOS[n.tipo] || n.tipo || "—"],
+                    ["Colaborador", n.colaborador || "—"],
+                    ["Valor", brl(n.valor)],
+                  ].map(([l, v]) => (
+                    <div key={l} className="min-w-0">
+                      <div style={{ color: T.inkFaint }}>{l}</div>
+                      <div className="truncate font-medium">{v}</div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex items-center justify-end gap-1 pt-3 border-t" style={{ borderColor: T.borderSoft }}>
+                  <button onClick={() => { setEditing(n); setModalOpen(true); }} className="pa-chip p-1.5 rounded" style={{ color: T.primary }}><Pencil size={16} /></button>
+                  <button onClick={() => handleDelete(n.id, n.apelido || n.numero)} className="pa-chip p-1.5 rounded text-red-500"><Trash2 size={16} /></button>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {filtrados.length > limite && (
+        <button onClick={() => setLimite((l) => l + 60)} className="pa-chip self-center px-5 py-2 rounded-lg text-sm font-medium border" style={{ borderColor: T.border, color: T.inkSoft }}>
+          Mostrar mais ({filtrados.length - limite} restantes)
+        </button>
+      )}
+
+      {/* Barra de ações em lote */}
+      {sel.size > 0 && (
+        <div className="pa-slide-up fixed bottom-6 left-1/2 -translate-x-1/2 z-40 rounded-2xl border shadow-2xl px-4 py-3 flex items-center gap-3 flex-wrap justify-center max-w-[94vw]" style={{ background: T.surface, borderColor: T.border, color: T.ink }}>
+          <span className="text-sm font-medium"><span className="pg-mono">{sel.size}</span> selecionado{sel.size > 1 ? "s" : ""}</span>
+          <span className="w-px h-5" style={{ background: T.border }} />
+
+          <Dropdown T={T} up renderTrigger={({ toggle }) => (
+            <button onClick={toggle} className="pa-chip px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{ background: T.primarySoft, color: T.primary }}><TagIcon size={14} /> Aplicar tag</button>
+          )}>
+            {({ close }) => (
+              <div className="p-2 max-h-64 overflow-y-auto pg-scroll flex flex-col gap-1">
+                {catalogo.length === 0 && <div className="p-3 text-xs" style={{ color: T.inkFaint }}>Crie tags na aba Tags.</div>}
+                {catalogo.map((t) => (
+                  <button key={t.id} onClick={() => { close(); lote((n) => ((n.tags || []).includes(t.nome) ? null : { tags: [...(n.tags || []), t.nome] }), `Tag "${t.nome}" aplicada`); }} className="text-left p-1 rounded-lg hover:opacity-80">
+                    <TagChip nome={t.nome} cor={t.cor} T={T} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Dropdown>
+
+          <Dropdown T={T} up renderTrigger={({ toggle }) => (
+            <button onClick={toggle} className="pa-chip px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{ background: T.borderSoft, color: T.inkSoft }}><X size={14} /> Remover tag</button>
+          )}>
+            {({ close }) => (
+              <div className="p-2 max-h-64 overflow-y-auto pg-scroll flex flex-col gap-1">
+                {catalogo.map((t) => (
+                  <button key={t.id} onClick={() => { close(); lote((n) => ((n.tags || []).includes(t.nome) ? { tags: n.tags.filter((x) => x !== t.nome) } : null), `Tag "${t.nome}" removida`); }} className="text-left p-1 rounded-lg hover:opacity-80">
+                    <TagChip nome={t.nome} cor={t.cor} T={T} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Dropdown>
+
+          <Dropdown T={T} up renderTrigger={({ toggle }) => (
+            <button onClick={toggle} className="pa-chip px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5" style={{ background: T.borderSoft, color: T.inkSoft }}><Check size={14} /> Mudar status</button>
+          )}>
+            {({ close }) => (
+              <div className="p-2 flex flex-col gap-1">
+                {STATUS_ORDEM.map((k) => (
+                  <button key={k} onClick={() => { close(); lote((n) => (n.status === k ? null : { status: k }), `Status → ${STATUS_LABEL[k]}`); }} className="text-left p-1 rounded-lg hover:opacity-80">
+                    <StatusPill status={k} T={T} />
+                  </button>
+                ))}
+              </div>
+            )}
+          </Dropdown>
+
+          <button onClick={() => setSel(new Set())} className="text-xs underline" style={{ color: T.inkSoft }}>Limpar seleção</button>
+        </div>
+      )}
+
+      {/* Modal de cadastro/edição */}
+      {modalOpen && (
+        <NumeroModal
+          initial={editing}
+          fornecedores={fornecedores}
+          T={T}
+          onClose={() => { setModalOpen(false); setEditing(null); }}
+          onSave={handleSave}
+        />
+      )}
+    </div>
+  );
+}
