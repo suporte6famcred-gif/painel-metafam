@@ -195,39 +195,6 @@ function FornecedorModal({ initial, T, onClose, onSave }) {
     <Estrelas value={f.avaliacao || 0} onChange={(n) => set("avaliacao", n)} T={T} size={22} />
   </div>
 </div>
-
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="pg-font-body block">
-              <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Tipo de contato</span>
-              <div className="inline-flex p-0.5 rounded-lg border w-full" style={{ borderColor: T.border, background: T.surface }}>
-                {Object.entries(TIPOS_CONTATO).map(([k, v]) => {
-                  const Icon = v.icon;
-                  const on = f.tipoContato === k;
-                  return (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => { setAuto(false); set("tipoContato", k); }}
-                      className="flex-1 px-2 py-1.5 rounded-md text-xs transition-colors inline-flex items-center justify-center gap-1.5"
-                      style={{ background: on ? v.cor : "transparent", color: on ? "#fff" : T.inkSoft, fontWeight: on ? 600 : 500 }}
-                      title={v.label}
-                    >
-                      <Icon size={13} />
-                      <span className="hidden sm:inline">{v.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {auto && contatoTipoSugerido !== f.tipoContato && (
-                <div className="text-[11px] mt-1.5" style={{ color: T.inkFaint }}>Detectado automaticamente pelo contato.</div>
-              )}
-            </div>
-            <div className="pg-font-body block">
-              <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Avaliação</span>
-              <Estrelas value={f.avaliacao || 0} onChange={(n) => set("avaliacao", n)} T={T} size={22} />
-            </div>
-          </div>
-
           <div>
             <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Tags</span>
             <div className="flex flex-wrap gap-1.5 mb-2 min-h-[26px]">
