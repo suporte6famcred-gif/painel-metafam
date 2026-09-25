@@ -46,6 +46,7 @@ import PainelAtivos from "./PainelAtivos";
 import PainelTags from "./PainelTags";
 import PainelRodizio from "./PainelRodizio";
 import PainelTelefonia from "./PainelTelefonia";
+import PainelFornecedores from "./PainelFornecedores";
 import { AnimStyles } from "./painelShared";
 import {
   collection,
