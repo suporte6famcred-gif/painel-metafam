@@ -1220,38 +1220,13 @@ export default function PainelGestaoAtivos() {
         )}
 
         {tab === "fornecedores" && (
-          <div className="flex flex-col gap-6">
-            <form onSubmit={handleAddFornecedor} className="p-6 rounded-xl border flex flex-col md:flex-row gap-4 items-end" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <div className="flex-1 w-full"><Field label="Nome do Fornecedor *" T={T}><input required value={fornNome} onChange={(e) => setFornNome(e.target.value)} placeholder="Ex: Lucas Contingência" className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <div className="flex-1 w-full"><Field label="Contato / Link" T={T}><input value={fornContato} onChange={(e) => setFornContato(e.target.value)} placeholder="Telegram / WhatsApp" className={inputCls} style={inputStyleFor(T)} /></Field></div>
-              <button type="submit" className="w-full md:w-auto px-5 py-2 rounded-lg text-sm font-medium text-white transition-shadow hover:shadow-lg" style={{ background: T.primary }}>Cadastrar</button>
-            </form>
-
-            <div className="rounded-xl border overflow-x-auto" style={{ background: T.surface, borderColor: T.borderSoft }}>
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b" style={{ borderColor: T.borderSoft, color: T.inkSoft }}>
-                    <th className="p-4">Nome</th>
-                    <th className="p-4">Contato</th>
-                    <th className="p-4 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y" style={{ borderColor: T.borderSoft }}>
-                  {fornecedores.map((f) => (
-                    <tr key={f.id}>
-                      <td className="p-4 font-medium">{f.nome}</td>
-                      <td className="p-4" style={{ color: T.inkSoft }}>{f.contato || "—"}</td>
-                      <td className="p-4 text-right">
-                        <button onClick={() => handleDeleteFornecedor(f.id, f.nome)} className="p-1 text-red-500 hover:opacity-70"><Trash2 size={16} /></button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
+  <PainelFornecedores
+    bms={bms}
+    numeros={numeros}
+    T={T}
+    registrarHistorico={registrarHistorico}
+  />
+)}
         {tab === "historico" && (
           <div className="flex flex-col gap-4">
             <div className="rounded-xl border overflow-hidden" style={{ background: T.surface, borderColor: T.borderSoft }}>
