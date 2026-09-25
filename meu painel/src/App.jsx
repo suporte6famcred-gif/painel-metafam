@@ -27,7 +27,7 @@ import {
   Package,
   TrendingUp,
   PieChart as PieChartIcon,
-  Phone, // ⬅️ TELEFONIA
+  Phone,
 } from "lucide-react";
 import {
   BarChart,
@@ -45,7 +45,7 @@ import PainelModelos from "./PainelModelos";
 import PainelAtivos from "./PainelAtivos";
 import PainelTags from "./PainelTags";
 import PainelRodizio from "./PainelRodizio";
-import PainelTelefonia from "./PainelTelefonia"; // ⬅️ TELEFONIA
+import PainelTelefonia from "./PainelTelefonia";
 import { AnimStyles } from "./painelShared";
 import {
   collection,
@@ -69,14 +69,8 @@ function rgba(hex, alpha) {
 }
 
 const COLOR_PRESETS = [
-  "#0B4C82", // azul
-  "#1F7A4D", // verde
-  "#7A3FA0", // roxo
-  "#A3402B", // terracota
-  "#0E7C86", // teal
-  "#B8862F", // dourado
-  "#C23B6B", // pink
-  "#3A3A3A", // grafite
+  "#0B4C82", "#1F7A4D", "#7A3FA0", "#A3402B",
+  "#0E7C86", "#B8862F", "#C23B6B", "#3A3A3A",
 ];
 
 const THEMES = {
@@ -213,7 +207,6 @@ function StatusBadge({ status, T }) {
   );
 }
 
-/* Barras de sinal — reflete a "qualidade do WABA" no vocabulário do próprio domínio */
 function QualidadeBadge({ qualidade, T }) {
   const cfg = T.QUALIDADE[qualidade] || T.QUALIDADE.media;
   const nivel = qualidade === "alta" ? 3 : qualidade === "baixa" ? 1 : 2;
@@ -233,7 +226,6 @@ function QualidadeBadge({ qualidade, T }) {
   );
 }
 
-/* Bloco hero — preenchimento sólido, o elemento com mais peso visual da tela */
 function HeroStat({ label, value, sub, T }) {
   return (
     <div
@@ -253,7 +245,6 @@ function HeroStat({ label, value, sub, T }) {
   );
 }
 
-/* Fita de indicadores — números sempre em mono, separados por traço fino (não cards repetidos) */
 function StatStrip({ items, T }) {
   return (
     <div className="pa-fade rounded-xl border flex flex-wrap overflow-hidden" style={{ borderColor: T.borderSoft, background: T.surface, animationDelay: "60ms" }}>
@@ -278,7 +269,6 @@ function StatStrip({ items, T }) {
   );
 }
 
-/* Trilho do ciclo de vida do ativo — o único elemento "ousado" e específico do domínio */
 const CICLO_ORDEM = ["estoque", "ativa", "em_recurso", "banida", "vendida"];
 function TrilhoCiclo({ bms, T }) {
   const contagens = useMemo(() => {
@@ -322,7 +312,6 @@ function ProgressBar({ value, max, T, color }) {
   );
 }
 
-/* ---------------- editor de tags (chips) ---------------- */
 function TagsInput({ value, onChange, T }) {
   const [draft, setDraft] = useState("");
   const add = () => {
@@ -377,7 +366,6 @@ function TagsInput({ value, onChange, T }) {
   );
 }
 
-/* ---------------- seletor de cor ---------------- */
 function ColorPickerPanel({ color, onChange, T, onClose }) {
   return (
     <div
@@ -417,7 +405,6 @@ function ColorPickerPanel({ color, onChange, T, onClose }) {
   );
 }
 
-/* ---------------- Modal do Ativo (BM) ---------------- */
 function BMModal({ initial, fornecedores, T, onClose, onSave }) {
   const [f, setF] = useState(initial || emptyBM());
   const set = (k) => (e) => setF({ ...f, [k]: e.target.value });
@@ -513,25 +500,26 @@ function BMModal({ initial, fornecedores, T, onClose, onSave }) {
     </div>
   );
 }
-
 /* ---------------- Componente Principal ---------------- */
 export default function PainelGestaoAtivos() {
   const [themeMode, setThemeMode] = useState("light");
   const [customColor, setCustomColor] = useState("#0B4C82");
   const [showColorPicker, setShowColorPicker] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarRecolhida, setSidebarRecolhida] = useState(() => {
+    try { return localStorage.getItem("gestaoAtivos.sidebar") === "1"; } catch { return false; }
+  });
 
   const [bms, setBms] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [historico, setHistorico] = useState([]);
-  const [metas, setMetas] = useState({}); // { "2026-09": { orcamento, metaAtivos } }
+  const [metas, setMetas] = useState({});
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState("dashboard");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBm, setEditingBm] = useState(null);
 
-  // Filtros - Ativos
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("todos");
   const [fornecedorFilter, setFornecedorFilter] = useState("todos");
@@ -539,7 +527,6 @@ export default function PainelGestaoAtivos() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
 
-  // Mês em foco (Dashboard + Financeiro)
   const [mesSelecionado, setMesSelecionado] = useState(hojeYYYYMM());
   const [orcamentoDraft, setOrcamentoDraft] = useState("");
   const [metaAtivosDraft, setMetaAtivosDraft] = useState("");
@@ -547,7 +534,6 @@ export default function PainelGestaoAtivos() {
   const [fornNome, setFornNome] = useState("");
   const [fornContato, setFornContato] = useState("");
 
-  // preferências salvas localmente (por usuário/navegador)
   useEffect(() => {
     try {
       const savedTheme = localStorage.getItem("gestaoAtivos.theme");
@@ -557,15 +543,14 @@ export default function PainelGestaoAtivos() {
     } catch (e) {}
   }, []);
   useEffect(() => {
-    try {
-      localStorage.setItem("gestaoAtivos.theme", themeMode);
-    } catch (e) {}
+    try { localStorage.setItem("gestaoAtivos.theme", themeMode); } catch (e) {}
   }, [themeMode]);
   useEffect(() => {
-    try {
-      localStorage.setItem("gestaoAtivos.color", customColor);
-    } catch (e) {}
+    try { localStorage.setItem("gestaoAtivos.color", customColor); } catch (e) {}
   }, [customColor]);
+  useEffect(() => {
+    try { localStorage.setItem("gestaoAtivos.sidebar", sidebarRecolhida ? "1" : "0"); } catch (e) {}
+  }, [sidebarRecolhida]);
 
   const T = useMemo(() => {
     const base = THEMES[themeMode];
@@ -671,7 +656,6 @@ export default function PainelGestaoAtivos() {
     }
   };
 
-  // ---- Rodízio: mover BM entre colunas do kanban manual (não altera status nem outros campos da BM) ----
   const LABEL_COLUNA_RODIZIO = { disponivel: "Disponível", em_uso: "Em uso hoje", descanso: "Em descanso" };
   const handleMoverColunaRodizio = async (bm, novaColuna) => {
     const payload = { colunaRodizio: novaColuna };
@@ -730,10 +714,7 @@ export default function PainelGestaoAtivos() {
   }, [bms]);
 
   const stats = useMemo(() => {
-    let gastoTotal = 0,
-      ativas = 0,
-      estoque = 0,
-      banidas = 0;
+    let gastoTotal = 0, ativas = 0, estoque = 0, banidas = 0;
     bms.forEach((b) => {
       gastoTotal += Number(b.valor) || 0;
       if (b.status === "ativa") ativas++;
@@ -759,9 +740,7 @@ export default function PainelGestaoAtivos() {
 
   const chartData = useMemo(() => {
     const counts = { ativa: 0, estoque: 0, em_recurso: 0, banida: 0, vendida: 0 };
-    bms.forEach((b) => {
-      if (counts[b.status] !== undefined) counts[b.status]++;
-    });
+    bms.forEach((b) => { if (counts[b.status] !== undefined) counts[b.status]++; });
     return [
       { name: "Ativas", qtd: counts.ativa },
       { name: "Estoque", qtd: counts.estoque },
@@ -833,12 +812,8 @@ export default function PainelGestaoAtivos() {
     setEndDate("");
   };
   const filtrosAtivosCount =
-    (search ? 1 : 0) +
-    (statusFilter !== "todos" ? 1 : 0) +
-    (fornecedorFilter !== "todos" ? 1 : 0) +
-    selectedTags.length +
-    (startDate ? 1 : 0) +
-    (endDate ? 1 : 0);
+    (search ? 1 : 0) + (statusFilter !== "todos" ? 1 : 0) + (fornecedorFilter !== "todos" ? 1 : 0) +
+    selectedTags.length + (startDate ? 1 : 0) + (endDate ? 1 : 0);
 
   if (loading) {
     return (
@@ -858,9 +833,7 @@ export default function PainelGestaoAtivos() {
     >
       <option value="todos">Todos os períodos</option>
       {mesesDisponiveis.map((m) => (
-        <option key={m} value={m}>
-          {monthLabel(m)}
-        </option>
+        <option key={m} value={m}>{monthLabel(m)}</option>
       ))}
     </select>
   );
@@ -868,7 +841,7 @@ export default function PainelGestaoAtivos() {
   const NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
-    { id: "telefonia", label: "Telefonia", icon: Phone }, // ⬅️ TELEFONIA
+    { id: "telefonia", label: "Telefonia", icon: Phone },
     { id: "tags", label: "Tags", icon: TagIcon },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
     { id: "modelos", label: "Modelos de mensagem", icon: MessageSquare },
@@ -884,7 +857,8 @@ export default function PainelGestaoAtivos() {
     return (
       <button
         onClick={onClick}
-        className="w-full flex items-center gap-3 pl-3 pr-2.5 py-2 text-sm rounded-lg shrink-0"
+        title={sidebarRecolhida ? item.label : undefined}
+        className={`w-full flex items-center rounded-lg shrink-0 transition-colors ${sidebarRecolhida ? "justify-center py-2.5" : "gap-3 pl-3 pr-2.5 py-2"}`}
         style={{
           background: active ? T.primary : "transparent",
           color: active ? "#fff" : T.inkSoft,
@@ -892,9 +866,13 @@ export default function PainelGestaoAtivos() {
         }}
       >
         <Icon size={17} />
-        <span className="flex-1 text-left">{item.label}</span>
-        {typeof item.count === "number" && (
-          <span className="pg-mono text-xs" style={{ color: active ? "rgba(255,255,255,0.85)" : T.inkFaint }}>{item.count}</span>
+        {!sidebarRecolhida && (
+          <>
+            <span className="flex-1 text-left">{item.label}</span>
+            {typeof item.count === "number" && (
+              <span className="pg-mono text-xs" style={{ color: active ? "rgba(255,255,255,0.85)" : T.inkFaint }}>{item.count}</span>
+            )}
+          </>
         )}
       </button>
     );
@@ -907,17 +885,19 @@ export default function PainelGestaoAtivos() {
 
       {/* Sidebar (desktop) */}
       <aside
-        className="hidden md:flex flex-col w-60 shrink-0 border-r h-screen sticky top-0"
+        className={`hidden md:flex flex-col shrink-0 border-r h-screen sticky top-0 transition-[width] duration-200 ${sidebarRecolhida ? "w-[72px]" : "w-60"}`}
         style={{ background: T.rail, borderColor: T.borderSoft }}
       >
-        <div className="flex items-center gap-2.5 px-4 h-16 border-b shrink-0" style={{ borderColor: T.borderSoft, background: T.surfaceAlt }}>
+        <div className={`flex items-center h-16 border-b shrink-0 ${sidebarRecolhida ? "justify-center px-2" : "px-4 gap-2.5"}`} style={{ borderColor: T.borderSoft, background: T.surfaceAlt }}>
           <div className="w-8 h-8 rounded-lg flex items-center justify-center text-white shrink-0" style={{ background: T.primary, boxShadow: `0 0 0 3px ${rgba(T.primary, 0.18)}` }}>
             <ShieldCheck size={17} />
           </div>
-          <div className="leading-tight">
-            <div className="pg-font-display font-bold text-sm tracking-tight">WA Base</div>
-            <div className="text-[11px]" style={{ color: T.inkFaint }}>by alvr</div>
-          </div>
+          {!sidebarRecolhida && (
+            <div className="leading-tight">
+              <div className="pg-font-display font-bold text-sm tracking-tight">WA Base</div>
+              <div className="text-[11px]" style={{ color: T.inkFaint }}>by alvr</div>
+            </div>
+          )}
         </div>
 
         <nav className="flex-1 flex flex-col gap-0.5 p-3 overflow-y-auto pg-scroll">
@@ -926,11 +906,21 @@ export default function PainelGestaoAtivos() {
           ))}
         </nav>
 
-        <div className="border-t" style={{ borderColor: T.borderSoft }}>
-          <TrilhoCiclo bms={bms} T={T} />
-        </div>
+        {!sidebarRecolhida && (
+          <div className="border-t" style={{ borderColor: T.borderSoft }}>
+            <TrilhoCiclo bms={bms} T={T} />
+          </div>
+        )}
 
-        <div className="p-3 border-t flex items-center gap-2 relative" style={{ borderColor: T.borderSoft }}>
+        <div className={`p-3 border-t flex items-center gap-2 relative ${sidebarRecolhida ? "flex-col" : ""}`} style={{ borderColor: T.borderSoft }}>
+          <button
+            onClick={() => setSidebarRecolhida((s) => !s)}
+            className="p-2 rounded-lg border"
+            style={{ borderColor: T.border }}
+            title={sidebarRecolhida ? "Expandir menu" : "Recolher menu"}
+          >
+            <Menu size={16} />
+          </button>
           <button
             onClick={() => setShowColorPicker((s) => !s)}
             className="p-2 rounded-lg border"
@@ -979,13 +969,15 @@ export default function PainelGestaoAtivos() {
             </button>
             <h2 className="pg-font-display font-semibold text-lg truncate">{paginaAtual}</h2>
           </div>
-          <button
-            onClick={() => { setEditingBm(null); setIsModalOpen(true); }}
-            className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0 transition-shadow hover:shadow-lg"
-            style={{ background: T.primary }}
-          >
-            <Plus size={18} /> <span className="hidden sm:inline">Novo Ativo</span>
-          </button>
+          {tab !== "telefonia" && (
+            <button
+              onClick={() => { setEditingBm(null); setIsModalOpen(true); }}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0 transition-shadow hover:shadow-lg"
+              style={{ background: T.primary }}
+            >
+              <Plus size={18} /> <span className="hidden sm:inline">Novo Ativo</span>
+            </button>
+          )}
         </div>
 
         <main className="px-4 md:px-8 py-8 flex-1 min-w-0">
@@ -1009,13 +1001,7 @@ export default function PainelGestaoAtivos() {
               T={T}
               label="BMs ativas agora"
               value={stats.ativas}
-              sub={
-                <>
-                  {stats.taxaAtivas}% de operação
-                  <br />
-                  {stats.totalBMs} ativos no total
-                </>
-              }
+              sub={<>{stats.taxaAtivas}% de operação<br />{stats.totalBMs} ativos no total</>}
             />
 
             <StatStrip
@@ -1028,7 +1014,6 @@ export default function PainelGestaoAtivos() {
               ]}
             />
 
-            {/* Metas do mês */}
             <div className="pa-fade rounded-xl p-6 border grid md:grid-cols-2 gap-6" style={{ background: T.surface, borderColor: T.borderSoft, animationDelay: "110ms" }}>
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -1144,7 +1129,7 @@ export default function PainelGestaoAtivos() {
           />
         )}
 
-        {tab === "telefonia" && ( // ⬅️ TELEFONIA
+        {tab === "telefonia" && (
           <PainelTelefonia
             T={T}
             registrarHistorico={registrarHistorico}
@@ -1156,6 +1141,8 @@ export default function PainelGestaoAtivos() {
         )}
 
         {tab === "financeiro" && (
+          <div className="
+                    {tab === "financeiro" && (
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <h1 className="pg-font-display text-2xl font-bold tracking-tight">Financeiro</h1>
