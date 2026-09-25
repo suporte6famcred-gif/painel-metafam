@@ -574,4 +574,31 @@ export default function PainelFornecedores({ bms = [], numeros = [], T, registra
                       </div>
                     </td>
                     <td className="p-4">
-                      <Estrelas value={f.avaliacao
+                      <Estrelas value={f.avaliacao || 0} onChange={(n) => handleAvaliar(f, n)} T={T} />
+                    </td>
+                    <td className="p-4 text-right pg-mono">{s.numeros}</td>
+                    <td className="p-4 text-right pg-mono">{s.bms}</td>
+                    <td className="p-4 text-right pg-mono font-medium">{brl(s.gasto)}</td>
+                    <td className="p-4 text-right whitespace-nowrap">
+                      <button onClick={() => { setEditing(f); setModalOpen(true); }} className="pa-chip p-1.5 mr-1 rounded" style={{ color: T.primary }}><Pencil size={15} /></button>
+                      <button onClick={() => handleDelete(f)} className="pa-chip p-1.5 rounded text-red-500"><Trash2 size={15} /></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {modalOpen && (
+        <FornecedorModal
+          initial={editing}
+          T={T}
+          onClose={() => { setModalOpen(false); setEditing(null); }}
+          onSave={handleSave}
+        />
+      )}
+    </div>
+  );
+}
