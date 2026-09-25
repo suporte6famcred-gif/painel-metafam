@@ -160,15 +160,41 @@ function FornecedorModal({ initial, T, onClose, onSave }) {
 
         <form onSubmit={submit} className="flex flex-col gap-4 p-6 overflow-y-auto pg-scroll">
           <div className="grid sm:grid-cols-2 gap-3">
-            <label className="pg-font-body block">
-              <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Nome / Empresa *</span>
-              <input required value={f.nome} onChange={(e) => set("nome", e.target.value)} placeholder="Ex: Falcon Corporation" className={inputCls} style={inputStyleFor(T)} />
-            </label>
-            <label className="pg-font-body block">
-              <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Contato</span>
-              <input value={f.contato} onChange={(e) => set("contato", e.target.value)} placeholder="(00) 00000-0000 ou @usuario" className={inputCls} style={inputStyleFor(T)} />
-            </label>
-          </div>
+  <div className="pg-font-body block min-w-0">
+    <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Tipo de contato</span>
+    <div className="grid grid-cols-2 gap-1.5 w-full">
+      {Object.entries(TIPOS_CONTATO).map(([k, v]) => {
+        const Icon = v.icon;
+        const on = f.tipoContato === k;
+        return (
+          <button
+            key={k}
+            type="button"
+            onClick={() => { setAuto(false); set("tipoContato", k); }}
+            className="px-2 py-1.5 rounded-md text-xs transition-colors inline-flex items-center justify-center gap-1.5 border"
+            style={{
+              background: on ? v.cor : T.surface,
+              color: on ? "#fff" : T.inkSoft,
+              borderColor: on ? v.cor : T.border,
+              fontWeight: on ? 600 : 500,
+            }}
+            title={v.label}
+          >
+            <Icon size={13} />
+            {v.label}
+          </button>
+        );
+      })}
+    </div>
+    {auto && contatoTipoSugerido !== f.tipoContato && (
+      <div className="text-[11px] mt-1.5" style={{ color: T.inkFaint }}>Detectado automaticamente pelo contato.</div>
+    )}
+  </div>
+  <div className="pg-font-body block min-w-0">
+    <span className="block text-xs font-medium mb-1.5" style={{ color: T.inkSoft }}>Avaliação</span>
+    <Estrelas value={f.avaliacao || 0} onChange={(n) => set("avaliacao", n)} T={T} size={22} />
+  </div>
+</div>
 
           <div className="grid sm:grid-cols-2 gap-3">
             <div className="pg-font-body block">
