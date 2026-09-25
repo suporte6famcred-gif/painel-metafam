@@ -131,34 +131,34 @@ export default function TelefoniaImportar({ numerosExistentes, T, onClose, onImp
   const validos = preview.filter((p) => !p.duplicado);
   const dup = preview.length - validos.length;
 
-  const importar = async () => {
-    if (validos.length === 0) return;
-    setImportando(true);
-    try {
-      for (let i = 0; i < validos.length; i += 400) {
-        const batch = writeBatch(db);
-        validos.slice(i, i + 400).forEach((r) => {
-          const id = uid();
-          batch.set(doc(db, "telefonia", id), {
-            ...r,
-            id,
-            duplicado: undefined,
-            criadoEm: new Date().toISOString(),
-            atualizadoEm: new Date().toISOString(),
-          });
+ const importar = async () => {
+  if (validos.length === 0) return;
+  setImportando(true);
+  try {
+    for (let i = 0; i < validos.length; i += 400) {
+      const batch = writeBatch(db);
+      validos.slice(i, i + 400).forEach((r) => {
+        const id = uid();
+        const { duplicado, ...limpo } = r;  // ← remove o campo 'duplicado'
+        batch.set(doc(db, "telefonia", id), {
+          ...limpo,
+          id,
+          criadoEm: new Date().toISOString(),
+          atualizadoEm: new Date().toISOString(),
         });
-        await batch.commit();
-      }
-      await registrarHistorico?.("Importação de Telefonia", `${validos.length} número(s) importado(s)${dup ? ` · ${dup} duplicado(s) ignorado(s)` : ""}`);
-      onImportar?.();
-      setTexto("");
-      setPreview([]);
-    } catch (e) {
-      alert("Erro ao importar: " + e.message);
-    } finally {
-      setImportando(false);
+      });
+      await batch.commit();
     }
-  };
+    await registrarHistorico?.("Importação de Telefonia", `${validos.length} número(s) importado(s)${dup ? ` · ${dup} duplicado(s) ignorado(s)` : ""}`);
+    onImportar?.();
+    setTexto("");
+    setPreview([]);
+  } catch (e) {
+    alert("Erro ao importar: " + e.message);
+  } finally {
+    setImportando(false);
+  }
+};
 
   return (
     <div className="flex flex-col gap-5">
