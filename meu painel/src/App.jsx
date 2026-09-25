@@ -27,6 +27,7 @@ import {
   Package,
   TrendingUp,
   PieChart as PieChartIcon,
+  Phone, // ⬅️ TELEFONIA
 } from "lucide-react";
 import {
   BarChart,
@@ -44,6 +45,7 @@ import PainelModelos from "./PainelModelos";
 import PainelAtivos from "./PainelAtivos";
 import PainelTags from "./PainelTags";
 import PainelRodizio from "./PainelRodizio";
+import PainelTelefonia from "./PainelTelefonia"; // ⬅️ TELEFONIA
 import { AnimStyles } from "./painelShared";
 import {
   collection,
@@ -866,6 +868,7 @@ export default function PainelGestaoAtivos() {
   const NAV_ITEMS = [
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
+    { id: "telefonia", label: "Telefonia", icon: Phone }, // ⬅️ TELEFONIA
     { id: "tags", label: "Tags", icon: TagIcon },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
     { id: "modelos", label: "Modelos de mensagem", icon: MessageSquare },
@@ -1137,6 +1140,13 @@ export default function PainelGestaoAtivos() {
             T={T}
             onEdit={(bm) => { setEditingBm(bm); setIsModalOpen(true); }}
             onDelete={handleDeleteBM}
+            registrarHistorico={registrarHistorico}
+          />
+        )}
+
+        {tab === "telefonia" && ( // ⬅️ TELEFONIA
+          <PainelTelefonia
+            T={T}
             registrarHistorico={registrarHistorico}
           />
         )}
