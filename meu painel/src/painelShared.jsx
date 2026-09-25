@@ -177,12 +177,20 @@ export function Dropdown({ renderTrigger, children, align = "left", T, width, up
     return () => document.removeEventListener("mousedown", h);
   }, [open]);
   return (
-    <div ref={ref} className="relative">
+    <div ref={ref} className="relative" style={{ zIndex: open ? 60 : "auto" }}>
       {renderTrigger({ open, toggle: () => setOpen((o) => !o) })}
       {open && (
         <div
-          className={`pa-pop-in pg-scroll absolute z-40 rounded-xl border shadow-xl overflow-y-auto ${up ? "bottom-full mb-2" : "mt-2"}`}
-          style={{ [align]: 0, minWidth: width || 220, maxHeight: "min(420px, 70vh)", background: T.surface, borderColor: T.border, color: T.ink }}
+          className={`pa-pop-in pg-scroll absolute rounded-xl border shadow-2xl overflow-y-auto ${up ? "bottom-full mb-2" : "mt-2"}`}
+          style={{
+            [align]: 0,
+            minWidth: width || 220,
+            maxHeight: "min(420px, 70vh)",
+            background: T.surface,
+            borderColor: T.border,
+            color: T.ink,
+            zIndex: 70,
+          }}
         >
           {typeof children === "function" ? children({ close: () => setOpen(false) }) : children}
         </div>
