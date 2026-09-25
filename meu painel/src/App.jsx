@@ -599,6 +599,7 @@ export default function PainelGestaoAtivos() {
       unsubForn();
       unsubHist();
       unsubMetas();
+      unsubNum();
     };
   }, []);
 
