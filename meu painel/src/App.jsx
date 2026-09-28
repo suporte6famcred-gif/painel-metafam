@@ -594,6 +594,8 @@ export default function PainelGestaoAtivos() {
       const obj = {};
       snapshot.docs.forEach((d) => (obj[d.id] = d.data()));
       setMetas(obj);
+      const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
+      setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     return () => {
       unsubBMs();
