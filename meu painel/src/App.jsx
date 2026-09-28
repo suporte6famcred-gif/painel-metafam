@@ -591,20 +591,21 @@ export default function PainelGestaoAtivos() {
       setHistorico(data);
     });
     const unsubMetas = onSnapshot(collection(db, "metas"), (snapshot) => {
-      const obj = {};
-      snapshot.docs.forEach((d) => (obj[d.id] = d.data()));
-      setMetas(obj);
-      const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
-      setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-    });
-    return () => {
-      unsubBMs();
-      unsubForn();
-      unsubHist();
-      unsubMetas();
-      unsubNum();
-    };
-  }, []);
+  const obj = {};
+  snapshot.docs.forEach((d) => (obj[d.id] = d.data()));
+  setMetas(obj);
+});
+const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
+  setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+});
+return () => {
+  unsubBMs();
+  unsubForn();
+  unsubHist();
+  unsubMetas();
+  unsubNum();
+};
+}, []);
 
   useEffect(() => {
     const m = metas[mesSelecionado] || {};
