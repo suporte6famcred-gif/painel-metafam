@@ -43,6 +43,7 @@ import {
 import { db } from "./firebase";
 import PainelModelos from "./PainelModelos";
 import PainelAtivos from "./PainelAtivos";
+import DashboardNovo from "./DashboardNovo";
 import PainelTags from "./PainelTags";
 import PainelRodizio from "./PainelRodizio";
 import PainelTelefonia from "./PainelTelefonia";
