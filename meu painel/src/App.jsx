@@ -1037,8 +1037,7 @@ export default function PainelGestaoAtivos() {
               <h1 className="pg-font-display text-2xl font-bold tracking-tight">Financeiro</h1>
               <MesSelector />
             </div>
-            )}
-
+  
             <StatStrip
               T={T}
               items={[
