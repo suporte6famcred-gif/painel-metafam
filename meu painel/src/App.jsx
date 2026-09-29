@@ -28,6 +28,8 @@ import {
   TrendingUp,
   PieChart as PieChartIcon,
   Phone,
+  Smartphone,
+  ArrowLeftRight,
 } from "lucide-react";
 import {
   BarChart,
