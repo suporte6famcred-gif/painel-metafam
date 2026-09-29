@@ -519,6 +519,8 @@ export default function PainelGestaoAtivos() {
 
   const [bms, setBms] = useState([]);
   const [numeros, setNumeros] = useState([]);
+  const [chips, setChips] = useState([]);
+  const [emprestimos, setEmprestimos] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [historico, setHistorico] = useState([]);
   const [metas, setMetas] = useState({});
