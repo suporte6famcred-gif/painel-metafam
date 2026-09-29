@@ -993,7 +993,7 @@ return () => {
             </button>
             <h2 className="pg-font-display font-semibold text-lg truncate">{paginaAtual}</h2>
           </div>
-          {tab !== "telefonia" && (
+      {!["telefonia", "chips", "emprestimos"].includes(tab) && (
             <button
               onClick={() => { setEditingBm(null); setIsModalOpen(true); }}
               className="px-4 py-2 rounded-lg text-sm font-medium text-white flex items-center gap-2 shrink-0 transition-shadow hover:shadow-lg"
