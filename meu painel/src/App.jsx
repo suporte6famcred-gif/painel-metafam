@@ -1043,6 +1043,24 @@ return () => {
             registrarHistorico={registrarHistorico}
           />
         )}
+                 
+        {tab === "chips" && (
+          <PainelChips
+            T={T}
+            registrarHistorico={registrarHistorico}
+            chips={chips}
+            loading={loading}
+          />
+        )}
+
+        {tab === "emprestimos" && (
+          <PainelEmprestimos
+            T={T}
+            registrarHistorico={registrarHistorico}
+            chips={chips}
+            loading={loading}
+          />
+        )}
 
         {tab === "tags" && (
           <PainelTags bms={bms} T={T} registrarHistorico={registrarHistorico} />
