@@ -44,9 +44,12 @@ import { db } from "./firebase";
 import PainelModelos from "./PainelModelos";
 import PainelAtivos from "./PainelAtivos";
 import DashboardNovo from "./DashboardNovo";
+import PainelChips from "./PainelChips";
+import PainelEmprestimos from "./PainelEmprestimos";
 import PainelTags from "./PainelTags";
 import PainelRodizio from "./PainelRodizio";
 import PainelTelefonia from "./PainelTelefonia";
+
 import PainelFornecedores from "./PainelFornecedores";
 import { AnimStyles } from "./painelShared";
 import {
