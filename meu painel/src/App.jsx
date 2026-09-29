@@ -617,6 +617,8 @@ return () => {
   unsubHist();
   unsubMetas();
   unsubNum();
+  unsubChips();
+  unsubEmprestimos();
 };
 }, []);
 
