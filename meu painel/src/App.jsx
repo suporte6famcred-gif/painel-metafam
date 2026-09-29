@@ -605,6 +605,12 @@ export default function PainelGestaoAtivos() {
 const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
   setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
 });
+      const unsubChips = onSnapshot(collection(db, "chips"), (snapshot) => {
+      setChips(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    const unsubEmprestimos = onSnapshot(collection(db, "emprestimos"), (snapshot) => {
+      setEmprestimos(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
 return () => {
   unsubBMs();
   unsubForn();
