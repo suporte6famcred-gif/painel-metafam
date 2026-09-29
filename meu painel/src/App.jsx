@@ -864,6 +864,8 @@ return () => {
     { id: "dashboard", label: "Dashboard", icon: LayoutGrid },
     { id: "bms", label: "Ativos / BMs", icon: Boxes, count: stats.totalBMs },
     { id: "telefonia", label: "Telefonia", icon: Phone },
+    { id: "chips", label: "Chips", icon: Smartphone, count: chips.filter((c) => c.status === "disponivel").length },
+    { id: "emprestimos", label: "Empréstimos", icon: ArrowLeftRight, count: emprestimos.filter((e) => !e.dataDevolucaoReal).length },
     { id: "tags", label: "Tags", icon: TagIcon },
     { id: "rodizio", label: "Rodízio", icon: Repeat },
     { id: "modelos", label: "Modelos de mensagem", icon: MessageSquare },
