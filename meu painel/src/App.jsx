@@ -691,6 +691,11 @@ return () => {
       payload.ultimoUsoRodizio = hojeISO();
       payload.historicoUsoRodizio = [...historicoAtual, hojeISO()].slice(-60);
     }
+      const handleSetDisparosDiarios = async (bm, valor) => {
+    const n = Math.max(0, Math.floor(Number(valor) || 0));
+    await setDoc(doc(db, "bms", bm.id), { disparosDiarios: n }, { merge: true });
+    await registrarHistorico("Rodízio", `BM "${bm.nome}": disparos diários definidos para ${n}`);
+  };
     await setDoc(doc(db, "bms", bm.id), payload, { merge: true });
     await registrarHistorico("Rodízio", `BM "${bm.nome}" movida para "${LABEL_COLUNA_RODIZIO[novaColuna]}"`);
   };
@@ -1197,9 +1202,10 @@ return () => {
             bms={bms}
             T={T}
             onMoverColuna={handleMoverColunaRodizio}
+            bmIdsComModeloAtivo={bmIdsComModeloAtivo}
           />
         )}
-
+          
         {tab === "modelos" && (
           <PainelModelos
             bms={bms}
