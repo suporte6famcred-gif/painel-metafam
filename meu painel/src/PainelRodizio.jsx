@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
 import { Search, GripVertical, Inbox, Zap, Moon, Clock, Phone, X, Layers } from "lucide-react";
 import { AnimStyles, useCountUp, usePersistentState, rgba, inputStyleFor } from "./painelShared";
+import { Search, GripVertical, Inbox, Zap, Moon, Clock, Phone, X, Layers, Target } from "lucide-react";
 
 /* =====================================================================
    RODÍZIO DE USO — versão refinada
@@ -15,9 +16,9 @@ import { AnimStyles, useCountUp, usePersistentState, rgba, inputStyleFor } from 
    ===================================================================== */
 
 const COLUNAS = [
-  { key: "disponivel", titulo: "Disponível", sub: "Prontas para entrar em uso", icon: Inbox, tone: "primary" },
-  { key: "em_uso", titulo: "Em uso hoje", sub: "Operando agora", icon: Zap, tone: "ativa" },
-  { key: "descanso", titulo: "Em descanso", sub: "Recuperando qualidade", icon: Moon, tone: "em_recurso" },
+  { key: "disponivel", titulo: "Em Estoque", sub: "Prontas para entrar em uso", icon: Inbox, tone: "primary" },
+  { key: "em_uso", titulo: "Disponível Para Uso", sub: "Operando agora", icon: Zap, tone: "ativa" },
+  { key: "descanso", titulo: "Stand By", sub: "Recuperando qualidade", icon: Moon, tone: "em_recurso" },
 ];
 const COL_KEYS = COLUNAS.map((c) => c.key);
 const corCol = (T, c) => (c.tone === "primary" ? T.primary : T.STATUS[c.tone].fg);
@@ -104,9 +105,75 @@ function Numero({ value, className, style }) {
   const v = useCountUp(value, 700);
   return <span className={className} style={style}>{Math.round(v)}</span>;
 }
+/* Editor inline de disparos diários — clique no número pra editar */
+function DisparosEditor({ bm, T, onSet }) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(bm.disparosDiarios ?? "");
+  const inputRef = useRef(null);
 
+  useEffect(() => {
+    setValor(bm.disparosDiarios ?? "");
+  }, [bm.disparosDiarios]);
+
+  useEffect(() => {
+    if (editando && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [editando]);
+
+  const salvar = () => {
+    setEditando(false);
+    const n = Math.max(0, Math.floor(Number(valor) || 0));
+    if (n !== Number(bm.disparosDiarios || 0)) onSet?.(bm, n);
+  };
+
+  const cancelar = () => {
+    setValor(bm.disparosDiarios ?? "");
+    setEditando(false);
+  };
+
+  if (editando) {
+    return (
+      <input
+        ref={inputRef}
+        type="number"
+        min="0"
+        value={valor}
+        onChange={(e) => setValor(e.target.value)}
+        onBlur={salvar}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") salvar();
+          if (e.key === "Escape") cancelar();
+        }}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
+        className="w-12 px-1 py-0.5 rounded text-[11px] pg-mono text-center outline-none"
+        style={{ background: T.surface, border: `1px solid ${T.primary}`, color: T.ink }}
+      />
+    );
+  }
+
+  const temValor = bm.disparosDiarios !== undefined && bm.disparosDiarios !== null && bm.disparosDiarios !== "";
+
+  return (
+    <button
+      onClick={(e) => { e.stopPropagation(); setEditando(true); }}
+      onPointerDown={(e) => e.stopPropagation()}
+      title="Definir disparos diários"
+      className="pa-chip inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] font-medium"
+      style={{
+        background: temValor ? rgba(T.primary, 0.12) : T.borderSoft,
+        color: temValor ? T.primary : T.inkFaint,
+      }}
+    >
+      <Target size={10} />
+      <span className="pg-mono">{temValor ? `${bm.disparosDiarios}/dia` : "definir"}</span>
+    </button>
+  );
+}
 /* Visual do card (usado no card da lista e no "fantasma" que segue o mouse) */
-function CardVisual({ bm, coluna, T, rank, ghost, onMover }) {
+function CardVisual({ bm, coluna, T, rank, ghost, onMover, onSetDisparos }) {
   const dias = diasDesde(bm.ultimoUsoRodizio);
   const usos7 = usosNosUltimosDias(bm.historicoUsoRodizio, 7);
   const dots = ultimos7(bm.historicoUsoRodizio);
@@ -146,7 +213,10 @@ function CardVisual({ bm, coluna, T, rank, ghost, onMover }) {
               {nome}
             </div>
           </div>
-          <Sinal qualidade={bm.qualidade || "media"} T={T} />
+            <div className="flex flex-col items-end gap-1 shrink-0">
+            <Sinal qualidade={bm.qualidade || "media"} T={T} />
+            {!ghost && <DisparosEditor bm={bm} T={T} onSet={onSetDisparos} />}
+          </div>
         </div>
 
         <div className="flex items-center justify-between gap-2 h-[26px]">
@@ -189,7 +259,7 @@ function CardVisual({ bm, coluna, T, rank, ghost, onMover }) {
   );
 }
 
-const CardRodizio = memo(function CardRodizio({ bm, coluna, T, rank, arrastandoId, recente, onDown, onMover, idx }) {
+const CardRodizio = memo(function CardRodizio({ bm, coluna, T, rank, arrastandoId, recente, onDown, onMover, idx, onSetDisparos }) {
   const isDrag = arrastandoId === bm.id;
   const cor = T.QUALIDADE[bm.qualidade || "media"]?.fg || T.primary;
   return (
@@ -200,7 +270,7 @@ const CardRodizio = memo(function CardRodizio({ bm, coluna, T, rank, arrastandoI
       className={`pa-fade ${recente === bm.id ? "pr-flash" : ""}`}
       style={{ "--pr-c": rgba(cor, 0.45), animationDelay: `${Math.min(idx, 10) * 30}ms`, opacity: isDrag ? 0.3 : 1, borderRadius: 12, outline: "none", position: "relative", userSelect: "none" }}
     >
-      <CardVisual bm={bm} coluna={coluna} T={T} rank={rank} onMover={onMover} />
+    <CardVisual bm={bm} coluna={coluna} T={T} rank={rank} onMover={onMover} onSetDisparos={onSetDisparos} />
     </div>
   );
 });
@@ -271,7 +341,7 @@ function Kpi({ label, value, sub, cor, icon: Icon, delay, T }) {
 /* =====================================================================
    COMPONENTE PRINCIPAL
    ===================================================================== */
-export default function PainelRodizio({ bms, T, onMoverColuna }) {
+export default function PainelRodizio({ bms, T, onMoverColuna, bmIdsComModeloAtivo, onSetDisparosDiarios }) {
   const [busca, setBusca] = useState("");
   const [fQual, setFQual] = useState([]);
   const [ordem, setOrdem] = usePersistentState("wa_rodizio_ordem", "sugestao");
@@ -411,9 +481,13 @@ export default function PainelRodizio({ bms, T, onMoverColuna }) {
   /* ---- dados ---- */
   const grupos = useMemo(() => {
     const g = { disponivel: [], em_uso: [], descanso: [] };
-    bms.filter((b) => b.status === "ativa" || b.status === "estoque").forEach((b) => g[otimista[b.id] || colunaBase(b)].push(b));
+    bms.filter((b) =>
+    b.status === "ativa" &&
+    bmIdsComModeloAtivo?.has(b.id) &&
+    !(b.tags || []).includes("Conta Limitada")
+    ).forEach((b) => g[otimista[b.id] || colunaBase(b)].push(b));
     return g;
-  }, [bms, otimista]);
+  }, [bms, otimista, bmIdsComModeloAtivo]);
 
   const filtrando = !!busca.trim() || fQual.length > 0;
 
@@ -503,7 +577,7 @@ export default function PainelRodizio({ bms, T, onMoverColuna }) {
             listRef={(el) => { listRefs.current[cfg.key] = el; }}
           >
             {visiveis[cfg.key].map((bm, i) => (
-              <CardRodizio
+             <CardRodizio
                 key={bm.id}
                 bm={bm}
                 coluna={cfg.key}
@@ -514,6 +588,7 @@ export default function PainelRodizio({ bms, T, onMoverColuna }) {
                 recente={recente}
                 onDown={onDown}
                 onMover={moverPara}
+                onSetDisparos={onSetDisparosDiarios}
               />
             ))}
           </Coluna>
