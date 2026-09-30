@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, memo } from "react";
-import { Search, GripVertical, Inbox, Zap, Moon, Clock, Phone, X, Layers } from "lucide-react";
 import { AnimStyles, useCountUp, usePersistentState, rgba, inputStyleFor } from "./painelShared";
 import { Search, GripVertical, Inbox, Zap, Moon, Clock, Phone, X, Layers, Target } from "lucide-react";
 
