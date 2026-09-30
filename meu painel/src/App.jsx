@@ -520,6 +520,7 @@ export default function PainelGestaoAtivos() {
   const [bms, setBms] = useState([]);
   const [numeros, setNumeros] = useState([]);
   const [chips, setChips] = useState([]);
+  const [modelos, setModelos] = useState([]);
   const [emprestimos, setEmprestimos] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [historico, setHistorico] = useState([]);
@@ -585,36 +586,40 @@ export default function PainelGestaoAtivos() {
 
   useEffect(() => {
     const unsubBMs = onSnapshot(collection(db, "bms"), (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, tags: [], qualidade: "media", ultimoUsoRodizio: "", historicoUsoRodizio: [], colunaRodizio: "disponivel", ...d.data() }));
-      setBms(data);
-      setLoading(false);
+    const data = snapshot.docs.map((d) => ({ id: d.id, tags: [], qualidade: "media", ultimoUsoRodizio: "", historicoUsoRodizio: [], colunaRodizio: "disponivel", ...d.data() }));
+    setBms(data);
+    setLoading(false);
     });
     const unsubForn = onSnapshot(collection(db, "fornecedores"), (snapshot) => {
-      setFornecedores(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    setFornecedores(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     const unsubHist = onSnapshot(collection(db, "historico"), (snapshot) => {
-      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
-      data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-      setHistorico(data);
+    const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    data.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    setHistorico(data);
+    });
+    const unsubModelos = onSnapshot(collection(db, "modelos"), (snapshot) => {
+    setModelos(snapshot.docs.map((d) => ({ id: d.id, canais: {}, ...d.data() })));
     });
     const unsubMetas = onSnapshot(collection(db, "metas"), (snapshot) => {
-  const obj = {};
-  snapshot.docs.forEach((d) => (obj[d.id] = d.data()));
-  setMetas(obj);
-});
-const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
-  setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
-});
-      const unsubChips = onSnapshot(collection(db, "chips"), (snapshot) => {
-      setChips(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    const obj = {};
+    snapshot.docs.forEach((d) => (obj[d.id] = d.data()));
+    setMetas(obj);
+    });
+    const unsubNum = onSnapshot(collection(db, "telefonia"), (snapshot) => {
+    setNumeros(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    });
+    const unsubChips = onSnapshot(collection(db, "chips"), (snapshot) => {
+    setChips(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
     const unsubEmprestimos = onSnapshot(collection(db, "emprestimos"), (snapshot) => {
-      setEmprestimos(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    setEmprestimos(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
     });
 return () => {
   unsubBMs();
   unsubForn();
   unsubHist();
+  unsubModelos();
   unsubMetas();
   unsubNum();
   unsubChips();
@@ -836,6 +841,16 @@ return () => {
   const filtrosAtivosCount =
     (search ? 1 : 0) + (statusFilter !== "todos" ? 1 : 0) + (fornecedorFilter !== "todos" ? 1 : 0) +
     selectedTags.length + (startDate ? 1 : 0) + (endDate ? 1 : 0);
+
+  const bmIdsComModeloAtivo = useMemo(() => {
+    const s = new Set();
+    modelos.forEach((m) => {
+      Object.entries(m.canais || {}).forEach(([bmId, r]) => {
+        if (r?.status === "APPROVED") s.add(bmId);
+      });
+    });
+    return s;
+  }, [modelos]);
 
   if (loading) {
     return (
