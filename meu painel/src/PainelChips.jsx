@@ -255,14 +255,6 @@ export default function PainelChips({ T, registrarHistorico, chips, loading }) {
       }
     }
 
-    await setDoc(doc(db, "chips", id), payload);
-    await registrarHistorico?.(
-      isEdit ? "Edição de Chip" : "Novo Chip",
-      `${data.numero}${data.operadora ? ` (${data.operadora})` : ""}`
-    );
-    setModalOpen(false);
-    setEditing(null);
-  };
 
     await setDoc(doc(db, "chips", id), payload);
     await registrarHistorico?.(isEdit ? "Edição de Chip" : "Novo Chip", `${data.numero}${data.operadora ? ` (${data.operadora})` : ""}`);
