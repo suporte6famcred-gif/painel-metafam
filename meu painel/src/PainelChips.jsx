@@ -233,6 +233,21 @@ export default function PainelChips({ T, registrarHistorico, chips, loading }) {
     const id = data.id || uid();
     const payload = { ...data, id, atualizadoEm: new Date().toISOString() };
     if (!isEdit) payload.criadoEm = new Date().toISOString();
+
+    // Se editou e o número mudou, sincroniza os empréstimos ligados
+    if (isEdit) {
+      const antigo = chips.find((c) => c.id === id);
+      if (antigo && antigo.numero !== data.numero) {
+        const { collection: col, query, where, getDocs } = await import("firebase/firestore");
+        const snap = await getDocs(query(col(db, "emprestimos"), where("chipId", "==", id)));
+        if (!snap.empty) {
+          const batch = writeBatch(db);
+          snap.docs.forEach((d) => batch.set(d.ref, { numero: data.numero, atualizadoEm: new Date().toISOString() }, { merge: true }));
+          await batch.commit();
+        }
+      }
+    }
+
     await setDoc(doc(db, "chips", id), payload);
     await registrarHistorico?.(isEdit ? "Edição de Chip" : "Novo Chip", `${data.numero}${data.operadora ? ` (${data.operadora})` : ""}`);
     setModalOpen(false);
