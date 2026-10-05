@@ -228,7 +228,7 @@ export default function PainelChips({ T, registrarHistorico, chips, loading }) {
   const limparTudo = () => { setF(F0); setSearch(""); };
   const toggleStatus = (s) => upd({ status: F.status.includes(s) ? F.status.filter((x) => x !== s) : [...F.status, s] });
 
-  const handleSave = async (data) => {
+    const handleSave = async (data) => {
     const isEdit = Boolean(data.id);
     const id = data.id || uid();
     const payload = { ...data, id, atualizadoEm: new Date().toISOString() };
@@ -238,15 +238,31 @@ export default function PainelChips({ T, registrarHistorico, chips, loading }) {
     if (isEdit) {
       const antigo = chips.find((c) => c.id === id);
       if (antigo && antigo.numero !== data.numero) {
-        const { collection: col, query, where, getDocs } = await import("firebase/firestore");
-        const snap = await getDocs(query(col(db, "emprestimos"), where("chipId", "==", id)));
-        if (!snap.empty) {
-          const batch = writeBatch(db);
-          snap.docs.forEach((d) => batch.set(d.ref, { numero: data.numero, atualizadoEm: new Date().toISOString() }, { merge: true }));
-          await batch.commit();
+        try {
+          const snap = await getDocs(query(collection(db, "emprestimos"), where("chipId", "==", id)));
+          if (!snap.empty) {
+            const batch = writeBatch(db);
+            snap.docs.forEach((d) =>
+              batch.set(d.ref, { numero: data.numero, atualizadoEm: new Date().toISOString() }, { merge: true })
+            );
+            await batch.commit();
+            console.log(`✅ Sincronizados ${snap.size} empréstimo(s) com o número novo.`);
+          }
+        } catch (err) {
+          console.error("Erro ao sincronizar empréstimos:", err);
+          alert("Chip salvo, mas houve erro ao sincronizar empréstimos: " + err.message);
         }
       }
     }
+
+    await setDoc(doc(db, "chips", id), payload);
+    await registrarHistorico?.(
+      isEdit ? "Edição de Chip" : "Novo Chip",
+      `${data.numero}${data.operadora ? ` (${data.operadora})` : ""}`
+    );
+    setModalOpen(false);
+    setEditing(null);
+  };
 
     await setDoc(doc(db, "chips", id), payload);
     await registrarHistorico?.(isEdit ? "Edição de Chip" : "Novo Chip", `${data.numero}${data.operadora ? ` (${data.operadora})` : ""}`);
