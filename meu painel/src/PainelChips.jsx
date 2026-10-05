@@ -8,9 +8,6 @@ import {
 } from "lucide-react";
 import { db } from "./firebase";
 import {
-  collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch,
-} from "firebase/firestore";
-import {
   AnimStyles, Dropdown, useCountUp, usePersistentState,
   rgba, inputCls, inputStyleFor, uid,
 } from "./painelShared";
