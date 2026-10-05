@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react";
 import {
+  collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, query, where, getDocs,
+} from "firebase/firestore";
+import {
   Smartphone, Plus, Search, X, Pencil, Trash2, Check, ChevronDown, ChevronUp,
   Download, LayoutGrid, List, SlidersHorizontal, Eye, Ban, Package,
 } from "lucide-react";
